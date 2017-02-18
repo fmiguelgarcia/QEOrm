@@ -13,24 +13,19 @@
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
  */
-
 #pragma once
-#include <QEOrmModel.hpp>
 
-/// @todo Add table version as a comment or other table, add version to CLASSINFO
-class SQLGenerator
+#include <QObject>
+
+class QEOrmTest : public QObject
 {
-	public:
-		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
+		Q_OBJECT
+	private slots:
+		void initTestCase();
+		void cleanupTestCase();
+
+		void init();
+		void cleanup();
 		
-	protected:
-		virtual QString generateColumnDefinition( 
-			const QEOrmModel& model, 
-			const QString& column) const;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
-		
-		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
-	
-		// Specific keywords
-		virtual QString autoIncrementKeyWord() const;
+		void checkTableCreation();
 };

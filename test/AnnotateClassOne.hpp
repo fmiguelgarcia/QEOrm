@@ -15,22 +15,30 @@
  */
 
 #pragma once
-#include <QEOrmModel.hpp>
+#include <QObject>
+#include <QString>
+#include <QDateTime>
 
-/// @todo Add table version as a comment or other table, add version to CLASSINFO
-class SQLGenerator
+class AnnotateClassOne
+	: public QObject
 {
-	public:
-		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
-		
-	protected:
-		virtual QString generateColumnDefinition( 
-			const QEOrmModel& model, 
-			const QString& column) const;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
-		
-		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
+	Q_OBJECT
+	Q_PROPERTY( int id MEMBER m_id)
+	Q_PROPERTY( QString user MEMBER m_user)
+	Q_PROPERTY( QDateTime begin MEMBER m_begin)
+	Q_PROPERTY( QDateTime end MEMBER m_end)
 	
-		// Specific keywords
-		virtual QString autoIncrementKeyWord() const;
+	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
+	Q_CLASSINFO( "user", "@QE.ORM.NULL=false @QE.ORM.MAX_LENGTH=256")
+	
+	public:
+		explicit AnnotateClassOne( QObject* parent = nullptr);
+		
+		bool operator == ( const AnnotateClassOne& other) const;
+		
+	public:
+		int m_id;
+		QString m_user;
+		QDateTime m_begin;
+		QDateTime m_end;
 };

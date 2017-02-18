@@ -14,7 +14,7 @@ set( QEOrm_BUILD_VERSION 0)
 set( QEOrm_SRCS
 	QEOrm.cpp
 	QEOrmModel.cpp QEOrmColumnDef.cpp
-	DBDriver/SQLGenerator.cpp )
+	DBDriver/SQLGenerator.cpp DBDriver/SQliteGenerator.cpp )
 
 # Link
 add_library( QEOrm SHARED ${QEOrm_SRCS})

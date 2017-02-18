@@ -15,22 +15,14 @@
  */
 
 #pragma once
-#include <QEOrmModel.hpp>
 
-/// @todo Add table version as a comment or other table, add version to CLASSINFO
-class SQLGenerator
+#include <DBDriver/SQLGenerator.hpp>
+
+class SQliteGenerator : public SQLGenerator
 {
-	public:
-		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
-		
 	protected:
-		virtual QString generateColumnDefinition( 
-			const QEOrmModel& model, 
-			const QString& column) const;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
-		
-		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
-	
-		// Specific keywords
-		virtual QString autoIncrementKeyWord() const;
+		virtual QString autoIncrementKeyWord() const override;
+		virtual QString generateColumnDefinition( const QEOrmModel& model,
+												  const QString& column) const override;
+		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
 };

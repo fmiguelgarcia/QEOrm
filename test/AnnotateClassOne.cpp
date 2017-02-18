@@ -14,23 +14,16 @@
  * information use the contact form at http://www.dmious.com/contact-us.
  */
 
-#pragma once
-#include <QEOrmModel.hpp>
+#include "AnnotateClassOne.hpp"
 
-/// @todo Add table version as a comment or other table, add version to CLASSINFO
-class SQLGenerator
+AnnotateClassOne::AnnotateClassOne(QObject *parent)
+	: QObject( parent)
+{ }
+
+bool AnnotateClassOne::operator==(const AnnotateClassOne &other) const
 {
-	public:
-		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
-		
-	protected:
-		virtual QString generateColumnDefinition( 
-			const QEOrmModel& model, 
-			const QString& column) const;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
-		
-		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
-	
-		// Specific keywords
-		virtual QString autoIncrementKeyWord() const;
-};
+	return m_id == other.m_id
+		&& m_user == other.m_user
+		&& m_begin == other.m_begin
+		&& m_end == other.m_end;
+}

@@ -77,3 +77,6 @@ bool QEOrmColumnDef::isUnique() const noexcept
 
 int QEOrmColumnDef::propertyType() const noexcept
 { return m_propertyType;}
+
+QVariant QEOrmColumnDef::defaultValue() const noexcept
+{ return QVariant(); }

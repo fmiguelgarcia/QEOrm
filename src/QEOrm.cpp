@@ -1,9 +1,11 @@
 #include <QEOrm.hpp>
+#include <DBDriver/SQliteGenerator.hpp>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QMetaObject>
 #include <utility>
+#include <map>
 #include <mutex>
 
 using namespace std;
@@ -48,7 +50,30 @@ namespace {
 		}
 		return true;
 	}
+
+	/// @brief It creates a new SQLGenerator based on current default DB driver.
+	SQLGenerator* getSQLGeneratorForDefaultDB()
+	{
+		map<QString, std::function< SQLGenerator*()> > sqlGenMaker = {
+			{ "", [](){ return new SQLGenerator;}},
+			{"QSQLITE", [](){ return new SQliteGenerator;}} 
+		};
+		
+		QSqlDatabase db = QSqlDatabase::database( 
+			QLatin1String(QSqlDatabase::defaultConnection), 
+			false);
+		const QString driverName =  db.driverName();
+		
+		auto itr = sqlGenMaker.find( driverName );
+		if( itr == end( sqlGenMaker))
+			itr = sqlGenMaker.find( QString(""));
+		
+		return itr->second();
+	}
 }
+
+std::unique_ptr<QEOrm> QEOrm::m_instance;
+std::once_flag QEOrm::m_onceFlag;
 
 QEOrm &QEOrm::instance()
 {
@@ -59,12 +84,7 @@ QEOrm &QEOrm::instance()
 
 QEOrm::QEOrm()
 {
-	/*QSqlDatabase db = QSqlDatabase::database( 
-		QLatin1String(QSqlDatabase::defaultConnection), 
-		false);
-	 const QString driverName =  db.driverName();
-	*/
-	m_sqlGenerator.reset( new SQLGenerator);
+	m_sqlGenerator.reset( getSQLGeneratorForDefaultDB());
 }
 
 QEOrmModel QEOrm::getModel( const QMetaObject* metaObject) const

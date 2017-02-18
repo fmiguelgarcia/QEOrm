@@ -25,24 +25,30 @@ QString SQLGenerator::createTableIfNotExist(const QEOrmModel &model) const
 	QString sqlCommand;
 	QTextStream os( &sqlCommand);
 	QStringList sqlColumnDef;
+	QString primaryKeyDef;
 
 	// Generate SQL for each column.
 	for( QString column: model.columnNames())
 		sqlColumnDef << generateColumnDefinition( model, column);
+	primaryKeyDef = generatePrimaryKeyDefinition( model);
 
 	// Generate SQL.
-	os << QLatin1Literal( "CREATE TABLE IF NOT EXIST '") 
+	os << QLatin1Literal( "CREATE TABLE IF NOT EXISTS '") 
 		<< model.table() 
 		<< QLatin1Literal("' (")
-		<< sqlColumnDef.join( QLatin1Literal(", "));
-
-	// Generate Primary key.
-	if( ! model.primaryKey().isEmpty())
-		os << QLatin1Literal( "PRIMARY KEY (") << model.primaryKey().join( QLatin1Char(',')) << QLatin1Char(')');
-
-	os << QLatin1Char(')');
+		<< sqlColumnDef.join( QLatin1Literal(", "))
+		<< primaryKeyDef
+		<< QLatin1Char(')');
 
 	return sqlCommand;
+}
+
+QString SQLGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) const
+{
+	QString pkDef;
+	if( ! model.primaryKey().isEmpty())
+		pkDef = QString( ", PRIMARY KEY (%1)").arg( model.primaryKey().join( QLatin1Char(',')));
+	return pkDef;
 }
 
 QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model, 
@@ -64,16 +70,13 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 		// type 
 		os << getDBType( 
 			static_cast<QMetaType::Type>( columnDef.propertyType()), 
-						columnDef.maxLength());
-		if( maxLength > 0 )
-			os << QLatin1Char('[') << maxLength << QLatin1Char(']');
-		os << space;
+						columnDef.maxLength()) << space;
 	
 		// Null
 		if( columnDef.isNull() )
-			os << QLatin1Literal( "NOT NULL ");
-		else
 			os << QLatin1Literal( "NULL ");
+		else
+			os << QLatin1Literal( "NOT NULL ");
 		
 		// Default value
 		if( ! columnDef.defaultValue().isNull() )
@@ -81,11 +84,14 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 		
 		// Auto-increment
 		if( columnDef.isAutoIncrement())
-			os << QLatin1Literal( "AUTO_INCREMENT ");
+			os << autoIncrementKeyWord() << space; 
 	}
 	
 	return sqlColumnDef;
 }
+
+QString SQLGenerator::autoIncrementKeyWord() const
+{ return QLatin1Literal( "AUTO_INCREMENT"); }
 
 QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint size) const
 {

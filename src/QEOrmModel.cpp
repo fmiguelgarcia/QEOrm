@@ -33,7 +33,7 @@ namespace {
 }
 
 QEOrmModel::QEOrmModel( const QMetaObject* metaObj)
-	: QEAnnotationModel( metaObj)
+	: QEAnnotationModel( metaObj), d_ptr( new QEOrmModelPrivate)
 { 
 	parseAnnotations( metaObj);
 }
@@ -47,6 +47,31 @@ QEOrmModel &QEOrmModel::operator=(const QEOrmModel & model) noexcept
 	QEAnnotationModel::operator=( model);
 	d_ptr = model.d_ptr;
 	return *this;
+}
+
+/// @brief It gets the primary keys from annotation.
+/// 
+/// If there is no explicit primary key, it will use the first
+/// 'auto_increment' file as a primary key.
+QStringList QEOrmModel::parseAnnotationsGetPrimaryKeys() const 
+{
+	QStringList primaryKeys = annotation( ANN_CLASS_ID(), ANN_PRIMARY_KEY())
+		.value( QString()).toString()
+		.split( ',', QString::SkipEmptyParts);
+		
+	if( primaryKeys.isEmpty())
+	{
+		auto itr = find_if(
+			begin( d_ptr->columnsByProperty),
+			end( d_ptr->columnsByProperty),
+			[]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
+			{ return item.second.isAutoIncrement();});
+		
+		if( itr != end( d_ptr->columnsByProperty))
+			primaryKeys.push_back( itr->second.columnName());
+	}
+	
+	return primaryKeys;
 }
 
 void QEOrmModel::parseAnnotations( const QMetaObject* metaObj )
@@ -73,9 +98,7 @@ void QEOrmModel::parseAnnotations( const QMetaObject* metaObj )
 	}
 	
 	// Primary keys
-	d_ptr->primaryKey = annotation( ANN_CLASS_ID(), ANN_PRIMARY_KEY())
-		.value( QString()).toString()
-		.split( ',', QString::SkipEmptyParts);
+	d_ptr->primaryKey = parseAnnotationsGetPrimaryKeys();
 		
 	// Indexes
 	/// @todo Indexes
@@ -122,4 +145,19 @@ QStringList QEOrmModel::columnNames() const
 
 	return columnNames;
 }
+
+QString QEOrmModel::autoIncrementColumnName() const
+{
+	QString columnName;
+	const auto itr = find_if( 
+		begin(d_ptr->columnsByProperty), 
+		end(d_ptr->columnsByProperty),
+		[]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
+			{ return item.second.isAutoIncrement();});
+	if( itr != end( d_ptr->columnsByProperty))
+		columnName = itr->second.columnName();
+	
+	return columnName;
+}
+
 
