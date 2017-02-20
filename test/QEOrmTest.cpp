@@ -28,6 +28,7 @@ void QEOrmTest::initTestCase()
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 	db.setDatabaseName(":memory:");
+//	db.setDatabaseName("/tmp/QEOrmTest.db");
 	QVERIFY( db.open() );
 }
 
@@ -49,13 +50,13 @@ void QEOrmTest::cleanup()
 void QEOrmTest::checkTableCreation()
 {
 	AnnotateClassOne obj1, obj2;
-	obj1.m_id = 0;
+	obj1.m_id = 1;
 	obj1.m_user = "Miguel";
 	obj1.m_begin = QDateTime::currentDateTime();
 	obj1.m_end = obj1.m_begin.addSecs(660);
 	
 	QEOrm::instance().save( &obj1);
-	QEOrm::instance().load( {0}, &obj2);
+	QEOrm::instance().load( {1}, &obj2);
 	
 	QVERIFY( obj1 == obj2);
 }

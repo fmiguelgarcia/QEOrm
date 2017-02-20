@@ -35,7 +35,7 @@ class QEOrmModel : public QEAnnotationModel
 		QEOrmColumnDef columnByProperty( const QString & property) const noexcept;
 		QEOrmColumnDef columnByName( const QString & columnName) const noexcept;
 		QStringList columnNames() const;
-		QString autoIncrementColumnName() const;
+		QEOrmColumnDef autoIncrementColumnName() const;
 		
 	private:
 		void parseAnnotations( const QMetaObject* meta);

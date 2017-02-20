@@ -27,11 +27,11 @@ class QEOrmColumnDefPrivate : public QSharedData
 {
 	public:
 		QEOrmColumnDefPrivate();
-		QEOrmColumnDefPrivate( const QString &property, const int type, const QEAnnotationModel* model);
+		QEOrmColumnDefPrivate( const QByteArray &property, const int type, const QEAnnotationModel *model);
 		QEOrmColumnDefPrivate( const QEOrmColumnDefPrivate& other);
 
 	public:
-		QString propertyName;
+		QByteArray propertyName;
 		int propertyType;
 		
 		QString dbColumnName;

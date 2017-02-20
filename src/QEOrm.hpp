@@ -14,7 +14,7 @@ class QEOrm
 	public:
 		static QEOrm& instance();
 
-		void save( const QObject* const source) const;
+		void save( QObject *const source) const;
 		void load( const QVariantList pk, QObject* target) const;
 
 	private:
@@ -23,7 +23,7 @@ class QEOrm
 		QEOrmModel getModel( const QMetaObject *metaObject) const;
 		void checkAndCreateDBTable( const QEOrmModel& model) const;
 		
-		void insertObjectOnDB(const QObject *source, const QEOrmModel& model) const;
+		void insertObjectOnDB(QObject *source, const QEOrmModel &model) const;
 		void updateObjectOnDB(const QObject *source, const QEOrmModel& model) const;
 		bool existsObjectOnDB(const QObject *source, const QEOrmModel& model) const;
 		QString generateCreateTableIfNotExists( const QEOrmModel& model) const;

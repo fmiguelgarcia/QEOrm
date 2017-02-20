@@ -28,12 +28,12 @@ class QEOrmColumnDef
 {
 	public:
 		QEOrmColumnDef();
-		QEOrmColumnDef( const QString &property, const int type, const QEAnnotationModel *model);
+		QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel *model);
 		QEOrmColumnDef( const QEOrmColumnDef &other) noexcept;
 
 		bool isValid() const noexcept;
 
-		QString propertyName() const noexcept;
+		QByteArray propertyName() const noexcept;
 		int propertyType() const noexcept;
 		
 		QString dbColumnName() const noexcept;

@@ -21,11 +21,13 @@ QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const
 	QString sqlColumnDef;
 	const QEOrmColumnDef columnDef = model.columnByName( column);
 	if( columnDef.isValid())
+	{
 		if( !columnDef.isDbAutoIncrement())
 			sqlColumnDef = SQLGenerator::generateColumnDefinition(model, column);
 		else
 			sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY AUTOINCREMENT")
 				.arg( column);
+	}
 				
 	return sqlColumnDef;
 }
@@ -34,8 +36,9 @@ QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const
 QString SQliteGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) const
 {
 	QString sqlStmt;
-	const QString autoIncrementColumnName = model.autoIncrementColumnName();
-	if( autoIncrementColumnName.isEmpty())
+	
+	const QEOrmColumnDef autoIncrementDef = model.autoIncrementColumnName();
+	if( ! autoIncrementDef.isValid()) 
 		sqlStmt = SQLGenerator::generatePrimaryKeyDefinition(model);
 	
 	return sqlStmt;

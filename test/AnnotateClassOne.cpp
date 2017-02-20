@@ -20,6 +20,18 @@ AnnotateClassOne::AnnotateClassOne(QObject *parent)
 	: QObject( parent)
 { }
 
+QDateTime AnnotateClassOne::begin() const
+{ return m_begin; }
+
+QDateTime AnnotateClassOne::end() const
+{ return m_end; }
+
+void AnnotateClassOne::setBegin(const QDateTime &d)
+{ m_begin = d; }
+
+void AnnotateClassOne::setEnd(const QDateTime &d)
+{ m_end = d; }
+
 bool AnnotateClassOne::operator==(const AnnotateClassOne &other) const
 {
 	return m_id == other.m_id

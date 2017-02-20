@@ -15,7 +15,7 @@ QEOrmColumnDefPrivate::QEOrmColumnDefPrivate() = default;
 QEOrmColumnDefPrivate::QEOrmColumnDefPrivate(const QEOrmColumnDefPrivate &other) = default;
 
 
-QEOrmColumnDefPrivate::QEOrmColumnDefPrivate( const QString & property, const int type, const QEAnnotationModel* model)
+QEOrmColumnDefPrivate::QEOrmColumnDefPrivate( const QByteArray& property, const int type, const QEAnnotationModel* model)
 	: propertyName(property), propertyType( type)
 {
 	dbColumnName = model->annotation( property, ANN_DB_COLUMN())

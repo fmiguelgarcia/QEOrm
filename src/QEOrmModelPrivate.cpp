@@ -80,7 +80,7 @@ void QEOrmModelPrivate::parseAnnotations( const QEAnnotationModel *model,
 	for( int i = begin; i < metaObj->propertyCount(); ++i)
 	{
 		QMetaProperty property = metaObj->property(i);
-		const QString propertyName = property.name();
+		const QByteArray propertyName = property.name();
 		const bool isEnable = model->annotation( propertyName, ANN_ENABLE())
 			.value( true).toBool();
 		if( isEnable )

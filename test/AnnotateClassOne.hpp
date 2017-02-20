@@ -25,14 +25,21 @@ class AnnotateClassOne
 	Q_OBJECT
 	Q_PROPERTY( int id MEMBER m_id)
 	Q_PROPERTY( QString user MEMBER m_user)
-	Q_PROPERTY( QDateTime begin MEMBER m_begin)
-	Q_PROPERTY( QDateTime end MEMBER m_end)
+	// Q_PROPERTY( QDateTime begin MEMBER m_begin)
+	Q_PROPERTY( QDateTime begin READ begin WRITE setBegin )
+	// Q_PROPERTY( QDateTime end MEMBER m_end)
+	Q_PROPERTY( QDateTime end READ end WRITE setEnd)
 	
 	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
 	Q_CLASSINFO( "user", "@QE.ORM.NULL=false @QE.ORM.MAX_LENGTH=256")
 	
 	public:
 		explicit AnnotateClassOne( QObject* parent = nullptr);
+		
+		QDateTime begin() const;
+		QDateTime end() const;
+		void setBegin( const QDateTime& d);
+		void setEnd( const QDateTime& d);
 		
 		bool operator == ( const AnnotateClassOne& other) const;
 		

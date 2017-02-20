@@ -29,14 +29,14 @@ QEOrmColumnDef::QEOrmColumnDef( const QEOrmColumnDef &other) noexcept
 	: d_ptr( other.d_ptr)
 {}
 
-QEOrmColumnDef::QEOrmColumnDef( const QString &property, const int type, const QEAnnotationModel *model)
+QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel *model)
 	: d_ptr( new QEOrmColumnDefPrivate( property, type, model))
 {}
 
 bool QEOrmColumnDef::isValid() const noexcept
 { return ! d_ptr->propertyName.isEmpty(); }
 
-QString QEOrmColumnDef::propertyName() const noexcept
+QByteArray QEOrmColumnDef::propertyName() const noexcept
 { return d_ptr->propertyName; }
 
 int QEOrmColumnDef::propertyType() const noexcept

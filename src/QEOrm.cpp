@@ -3,7 +3,10 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlRecord>
+#include <QSqlField>
 #include <QMetaObject>
+#include <QDebug>
 #include <utility>
 #include <map>
 #include <mutex>
@@ -73,15 +76,17 @@ namespace {
 	
 	QSqlQuery executeSQLOrThrow( const QString& stmt, const QString& errorMsg )
 	{
+		qDebug() << "QEOrm SQL statement: " << stmt;
 		QSqlQuery sqlQuery( stmt);
-		if( ! sqlQuery.exec() )
+		const QSqlError sqlError = sqlQuery.lastError();
+		if( sqlError.type() != QSqlError::NoError )
 		{
-			const QSqlError sqlError = sqlQuery.lastError();
 			const QString msg =  errorMsg
 				.arg( sqlError.nativeErrorCode())
 				.arg( sqlError.text());
 			throw runtime_error( msg.toStdString());
 		}
+		return sqlQuery;
 	}
 }
 
@@ -108,21 +113,9 @@ QEOrmModel QEOrm::getModel( const QMetaObject* metaObject) const
 		metaObject, 
 		m_cachedModelsMtx, 
 		[metaObject](){ return QEOrmModel(metaObject);});
-#if 0
-	auto itr = m_cachedModels.find( metaObject);
-	if( itr == end( m_cachedModels))
-	{
-		lock_guard<std::mutex> _(m_cachedModelsMtx);
-		
-		itr = m_cachedModels.insert( 
-			make_pair( metaObject, QEOrmModel( metaObject))).first;
-	}
-			
-	return itr->second;
-#endif
 }
 
-void QEOrm::save(const QObject *const source) const
+void QEOrm::save(QObject *const source) const
 {
 	const QMetaObject *mo = source->metaObject();
 	QEOrmModel model = getModel(mo);
@@ -136,7 +129,25 @@ void QEOrm::save(const QObject *const source) const
 
 void QEOrm::load(const QVariantList pk, QObject *target) const
 {
-
+	const QMetaObject *mo = target->metaObject();
+	QEOrmModel model = getModel(mo);
+	
+	QSqlQuery query = executeSQLOrThrow(
+		m_sqlGenerator->generateLoadObjectFromDBStmt( pk, model),
+		QString( "QEOrm cannot load object from database %1: %2"));
+	
+	if( !query.next())
+		throw runtime_error( "QEOrm cannot load object");
+	
+	QSqlRecord record = query.record();
+	for( int i = 0; i < record.count(); ++i)
+	{
+		const QSqlField field = record.field( i);
+		const QEOrmColumnDef colDef = model.columnByName( field.name());
+		const QString valueStr = field.value().toString();
+		target->setProperty( colDef.propertyName().constData(), 
+							 field.value());
+	}
 }
 
 void QEOrm::checkAndCreateDBTable( const QEOrmModel& model) const
@@ -157,12 +168,20 @@ bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) con
 	return query.next();
 }
 
-void QEOrm::insertObjectOnDB(const QObject *source, const QEOrmModel &model) const
+void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
 {
-	executeSQLOrThrow( 
+	QSqlQuery query = executeSQLOrThrow( 
 		m_sqlGenerator->generateInsertObjectStmt( source, model),
 		QLatin1Literal("QEOrm cannot insert a new object into database %1: %2"));
-		
+
+	// Update object
+	QVariant insertId = query.lastInsertId();
+	if( ! insertId.isNull())
+	{
+		QEOrmColumnDef colDef = model.autoIncrementColumnName();
+		if( colDef.isValid())
+			source->setProperty( colDef.propertyName().constData(), insertId);
+	}
 }
 
 void QEOrm::updateObjectOnDB(const QObject *source, const QEOrmModel &model) const

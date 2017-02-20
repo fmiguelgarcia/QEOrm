@@ -17,6 +17,8 @@
 #include "SQLGenerator.hpp"
 #include <QEOrmColumnDef.hpp>
 #include <QTextStream>
+#include <QDateTime>
+#include <algorithm>
 
 using namespace std;
 
@@ -69,7 +71,6 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 	{
 		const QLatin1Char quotationMark ('\'');
 		const QLatin1Char space(' ');
-		const uint maxLength = columnDef.dbMaxLength();
 		
 		// Name
 		os << quotationMark << column << quotationMark << space;
@@ -99,6 +100,35 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 
 QString SQLGenerator::autoIncrementKeyWord() const
 { return QLatin1Literal( "AUTO_INCREMENT"); }
+
+QString SQLGenerator::variantToSQL( const QVariant &value, const int propertyType) const
+{
+	QString strValue;
+	QTextStream os( &strValue);
+	const QChar quote = QLatin1Char('\'');
+	
+	switch( propertyType)
+	{ 
+		case QMetaType::QByteArray:
+			os << quote << value.toByteArray().toHex() << quote;
+			break;
+		case QMetaType::QTime:
+			os << quote << value.toTime().toString( QLatin1Literal("HH:mm:ss")) << quote;
+			break;
+		case QMetaType::QDate:
+			os << quote << value.toDate().toString( QLatin1Literal("yyyy-MM-dd")) << quote;
+			break;
+		case QMetaType::QDateTime:
+			os << quote << value.toDateTime().toString( QLatin1Literal("yyyy-MM-dd HH:mm:ss")) << quote;
+			break;
+		case QMetaType::QString:
+			os << quote << value.toString().replace(  QLatin1Literal("'"), QLatin1Literal("\\'")) << quote;
+			break;
+		default:
+			os << value.toString();
+	}
+	return strValue;
+}
 
 QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint size) const
 {
@@ -166,15 +196,32 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 }
 
 
+QString SQLGenerator::generateWhereClause( const QVariantList& pk,  const QEOrmModel &model) const 
+{
+	QStringList pkWhereClause;
+	vector<QEOrmColumnDef> modelPk = model.primaryKey();
+
+	int count = std::min<uint>( pk.size(), modelPk.size());
+	for( int i = 0; i < count; ++i)
+	{
+		const QEOrmColumnDef colDef = modelPk[i];
+		pkWhereClause << QString(" %1 == %2")
+			.arg( colDef.dbColumnName())
+			.arg( variantToSQL( pk[i], colDef.propertyType()));
+	}
+	
+	return pkWhereClause.join( QLatin1Literal(" AND "));
+}
+
 QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &model) const 
 {
 	QStringList pkWhereClause;
 	for( QEOrmColumnDef colDef: model.primaryKey())
 	{
-		const QVariant value = o->property( colDef.propertyName().toLocal8Bit().constData());
-		pkWhereClause << QString(" %1 == '%2'")
+		const QVariant value = o->property( colDef.propertyName().constData());
+		pkWhereClause << QString(" %1 == %2")
 				.arg( colDef.dbColumnName())
-				.arg( value.toString());
+				.arg( variantToSQL( value, colDef.propertyType()));
 	}
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
@@ -183,7 +230,7 @@ QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &m
 QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrmModel &model) const
 {
 	QString stmt;
-	QTextStream os;
+	QTextStream os( &stmt);
 	
 	os << QLatin1Literal( "SELECT * FROM '") << model.table() << QLatin1Literal("' WHERE ");
 	os << generateWhereClause( o, model) << QLatin1Literal( " LIMIT 1");
@@ -199,12 +246,15 @@ QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmMod
 	for( const QString& colName: columnNames)
 	{
 		const QEOrmColumnDef colDef = model.columnByName( colName);
-		const QVariant value = o->property( colDef.propertyName().toLocal8Bit().constData());
-		values << value.toString();
+		const QVariant value = o->property( colDef.propertyName().constData());
+		if( colDef.isDbAutoIncrement() && value.toInt() == 0)
+			values << QLatin1Literal( "null");
+		else
+			values << variantToSQL( value, colDef.propertyType());
 	}
 	
 	QString stmt;
-	QTextStream os;
+	QTextStream os( &stmt);
 	os << QLatin1Literal( "INSERT INTO '") << model.table() 
 		<< QLatin1Literal("' (") << columnNames.join( QLatin1Literal(", ")) 
 		<< QLatin1Literal(") VALUES (") << values.join( QLatin1Literal(", ")) 
@@ -219,17 +269,33 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 	QStringList setExpList;
 	for( const QEOrmColumnDef& col: model.noPrimaryKey())
 	{
-		const QVariant value = o->property( col.propertyName().toLocal8Bit().constData());
+		const QVariant value = o->property( col.propertyName().constData());
 		setExpList << QString("%1 = %2")
 			.arg( col.dbColumnName())
-			.arg( value.toString());
+			.arg( variantToSQL( value, col.propertyType()));
 	}
 	
 	QString stmt;
-	QTextStream os;
+	QTextStream os( &stmt);
 	os << QLatin1Literal( "UPDATE '") << model.table() 
 		<< QLatin1Literal( "' SET ") << setExpList.join( QLatin1Literal(", "))
 		<< QLatin1Literal( " WHERE ") << generateWhereClause( o, model);
 
+	return stmt;
+}
+
+QString SQLGenerator::generateLoadObjectFromDBStmt(const QVariantList& pk, const QEOrmModel &model) const
+{
+	QStringList colums;
+	for( const QEOrmColumnDef& col: model.primaryKey())
+		colums << col.dbColumnName();
+	for( const QEOrmColumnDef& col: model.noPrimaryKey())
+		colums << col.dbColumnName();
+	
+	QString stmt;
+	QTextStream os( &stmt);
+	os << QLatin1Literal(" SELECT ") << colums.join( ", ")
+		<< QLatin1Literal( " FROM '") << model.table() << QLatin1Char('\'')
+		<< QLatin1Literal( " WHERE ") << generateWhereClause( pk, model);
 	return stmt;
 }

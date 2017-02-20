@@ -80,10 +80,9 @@ QStringList QEOrmModel::columnNames() const
 	return columnNames;
 }
 
-QString QEOrmModel::autoIncrementColumnName() const
+QEOrmColumnDef QEOrmModel::autoIncrementColumnName() const
 {
-	QString columnName;
-
+	QEOrmColumnDef col;
 	const auto itr = find_if( 
 		begin(d_ptr->columnsByProperty), 
 		end(d_ptr->columnsByProperty),
@@ -91,9 +90,9 @@ QString QEOrmModel::autoIncrementColumnName() const
 			{ return item.second.isDbAutoIncrement();});
 	
 	if( itr != end( d_ptr->columnsByProperty))
-		columnName = itr->second.dbColumnName();
+		col = itr->second;
 
-	return columnName;
+	return col;
 }
 
 

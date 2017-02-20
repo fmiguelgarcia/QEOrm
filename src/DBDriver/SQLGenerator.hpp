@@ -26,13 +26,16 @@ class SQLGenerator
 		virtual QString generateExistsObjectOnDBStmt( const QObject* o, const QEOrmModel& model) const;
 		virtual QString generateInsertObjectStmt( const QObject *o, const QEOrmModel &model) const;
 		virtual QString generateUpdateObjectStmt( const QObject *o, const QEOrmModel& model) const;
+		virtual QString generateLoadObjectFromDBStmt( const QVariantList& pk, const QEOrmModel &model) const;
 
 	protected:
 		virtual QString generateColumnDefinition( const QEOrmModel& model, const QString& column) const;
 		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
 		virtual QString generateWhereClause(const QObject *o, const QEOrmModel& model) const;
+		virtual QString generateWhereClause( const QVariantList& pk, const QEOrmModel &model) const;
 		
 		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
+		virtual QString variantToSQL( const QVariant& value, const int propertyType) const;
 	
 		// Specific keywords
 		virtual QString autoIncrementKeyWord() const;
