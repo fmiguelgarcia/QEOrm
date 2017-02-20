@@ -15,68 +15,49 @@
  */
 
 #include "QEOrmColumnDef.hpp"
+#include "QEOrmColumnDefPrivate.hpp"
 #include <QEOrmModel.hpp>
 #include <utility>
 
 using namespace std;
-namespace {
-	inline QString ANN_AUTO_INCREMENT() { return QLatin1Literal( "@QE.ORM.AUTO_INCREMENT");}
-	inline QString ANN_DB_COLUMN() { return QLatin1Literal( "@QE.ORM.DB_COLUMN");}
-	inline QString ANN_MAX_LENGTH() { return QLatin1Literal( "@QE.ORM.MAX_LENGTH");}
-	inline QString ANN_NULL() { return QLatin1Literal( "@QE.ORM.NULL");}
-	inline QString ANN_UNIQUE() { return QLatin1Literal( "@QE.ORM.UNIQUE");}
-	inline QString ANN_DEFAULT() { return QLatin1Literal( "@QE.ORM.DEFAULT");}
-}
 
-QEOrmColumnDef::QEOrmColumnDef() = default;
-QEOrmColumnDef::QEOrmColumnDef( const QEOrmColumnDef &other) = default;
+QEOrmColumnDef::QEOrmColumnDef()
+	: d_ptr( new QEOrmColumnDefPrivate)
+{}
 
-QEOrmColumnDef::QEOrmColumnDef( 
-	const QString property, const int type, const QEOrmModel *model)
-	: m_propertyName(property), m_propertyType( type)
-{
-	m_columnName = model->annotation( property, ANN_DB_COLUMN())
-		.value( property).toString();
-	m_isNull = model->annotation( property, ANN_NULL())
-		.value( false).toBool();
-	m_isAutoIncrement = model->annotation( property, ANN_AUTO_INCREMENT())
-		.value( false).toBool();
-	m_isUnique = model->annotation( property, ANN_UNIQUE())
-		.value( false).toBool();
-	m_maxLength = model->annotation( property, ANN_MAX_LENGTH())
-		.value( 0).toUInt();
-		
-	if( type == QMetaType::Char 
-		|| type == QMetaType::QChar
-		|| type == QMetaType::SChar
-		|| type == QMetaType::UChar)
-		m_maxLength = 1;
-}
+QEOrmColumnDef::QEOrmColumnDef( const QEOrmColumnDef &other) noexcept
+	: d_ptr( other.d_ptr)
+{}
 
+QEOrmColumnDef::QEOrmColumnDef( const QString &property, const int type, const QEAnnotationModel *model)
+	: d_ptr( new QEOrmColumnDefPrivate( property, type, model))
+{}
 
 bool QEOrmColumnDef::isValid() const noexcept
-{ return !m_columnName.isEmpty();}
-
-QString QEOrmColumnDef::columnName() const noexcept
-{ return m_columnName; }
+{ return ! d_ptr->propertyName.isEmpty(); }
 
 QString QEOrmColumnDef::propertyName() const noexcept
-{ return m_propertyName; }
-
-uint QEOrmColumnDef::maxLength() const noexcept
-{ return m_maxLength;}
-
-bool QEOrmColumnDef::isAutoIncrement() const noexcept
-{ return m_isAutoIncrement;}
-
-bool QEOrmColumnDef::isNull() const noexcept
-{ return m_isNull;}
-
-bool QEOrmColumnDef::isUnique() const noexcept
-{ return m_isUnique;}
+{ return d_ptr->propertyName; }
 
 int QEOrmColumnDef::propertyType() const noexcept
-{ return m_propertyType;}
+{ return d_ptr->propertyType;}
 
-QVariant QEOrmColumnDef::defaultValue() const noexcept
-{ return QVariant(); }
+
+
+QString QEOrmColumnDef::dbColumnName() const noexcept
+{ return d_ptr->dbColumnName; }
+
+QVariant QEOrmColumnDef::dbDefaultValue() const noexcept
+{ return d_ptr->dbDefaultValue; }
+
+uint QEOrmColumnDef::dbMaxLength() const noexcept
+{ return d_ptr->dbMaxLength; }
+
+bool QEOrmColumnDef::isDbAutoIncrement() const noexcept
+{ return d_ptr->isDbAutoIncrement; }
+
+bool QEOrmColumnDef::isDbNullable() const noexcept
+{ return d_ptr->isDbNullable; }
+
+bool QEOrmColumnDef::isDbUnique() const noexcept
+{ return d_ptr->isDbUnique; }

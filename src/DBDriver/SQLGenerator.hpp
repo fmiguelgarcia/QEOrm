@@ -23,11 +23,14 @@ class SQLGenerator
 	public:
 		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
 		
+		virtual QString generateExistsObjectOnDBStmt( const QObject* o, const QEOrmModel& model) const;
+		virtual QString generateInsertObjectStmt( const QObject *o, const QEOrmModel &model) const;
+		virtual QString generateUpdateObjectStmt( const QObject *o, const QEOrmModel& model) const;
+
 	protected:
-		virtual QString generateColumnDefinition( 
-			const QEOrmModel& model, 
-			const QString& column) const;
+		virtual QString generateColumnDefinition( const QEOrmModel& model, const QString& column) const;
 		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
+		virtual QString generateWhereClause(const QObject *o, const QEOrmModel& model) const;
 		
 		virtual QString getDBType( const QMetaType::Type propertyType, const uint size) const;
 	

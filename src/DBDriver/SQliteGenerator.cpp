@@ -21,7 +21,7 @@ QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const
 	QString sqlColumnDef;
 	const QEOrmColumnDef columnDef = model.columnByName( column);
 	if( columnDef.isValid())
-		if( !columnDef.isAutoIncrement())
+		if( !columnDef.isDbAutoIncrement())
 			sqlColumnDef = SQLGenerator::generateColumnDefinition(model, column);
 		else
 			sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY AUTOINCREMENT")

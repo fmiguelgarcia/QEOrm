@@ -70,6 +70,19 @@ namespace {
 		
 		return itr->second();
 	}
+	
+	QSqlQuery executeSQLOrThrow( const QString& stmt, const QString& errorMsg )
+	{
+		QSqlQuery sqlQuery( stmt);
+		if( ! sqlQuery.exec() )
+		{
+			const QSqlError sqlError = sqlQuery.lastError();
+			const QString msg =  errorMsg
+				.arg( sqlError.nativeErrorCode())
+				.arg( sqlError.text());
+			throw runtime_error( msg.toStdString());
+		}
+	}
 }
 
 std::unique_ptr<QEOrm> QEOrm::m_instance;
@@ -132,34 +145,30 @@ void QEOrm::checkAndCreateDBTable( const QEOrmModel& model) const
 	if( !isAlreadyChecked)
 	{
 		const QString sqlCommand =  m_sqlGenerator->createTableIfNotExist( model); 
-		QSqlDatabase db = QSqlDatabase::database();
-		QSqlQuery sqlQuery = db.exec( sqlCommand);
-		QSqlError sqlError = sqlQuery.lastError();
-		if( sqlError.type() != QSqlError::NoError )
-		{
-			QString msg = QString("QEOrm cannot create table '%1' due to error %2: %3")
-				.arg( model.table())
-				.arg( sqlError.nativeErrorCode())
-				.arg( sqlError.text());
-			throw runtime_error( msg.toStdString());
-		}
+		executeSQLOrThrow( sqlCommand, QString("QEOrm cannot create table '%1' due to error %2: %3")
+				.arg( model.table()));
 	}
 }
 
-
-
 bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
-	return false;
+	QSqlQuery query = executeSQLOrThrow( m_sqlGenerator->generateExistsObjectOnDBStmt( source, model),
+										 QString("QEOrm cannot check existance of object into db %1: %2"));
+	return query.next();
 }
 
 void QEOrm::insertObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
-
+	executeSQLOrThrow( 
+		m_sqlGenerator->generateInsertObjectStmt( source, model),
+		QLatin1Literal("QEOrm cannot insert a new object into database %1: %2"));
+		
 }
 
 void QEOrm::updateObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
-
+	executeSQLOrThrow(
+		m_sqlGenerator->generateUpdateObjectStmt( source, model),
+		QLatin1Literal("QEOrm cannot update an object from database %1: %2"));
 }
 

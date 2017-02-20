@@ -15,27 +15,17 @@
  */
 
 #include "QEOrmModel.hpp"
+#include "QEOrmModelPrivate.hpp"
 #include <QEAnnotation/QEAnnotationModel.hpp>
 #include <QMetaProperty>
 #include <utility>
 
 using namespace std;
-namespace {
-	inline QString ANN_CLASS_ID() { return QLatin1Literal( "class");}
-	inline QString ANN_TABLE_KEY() { return QLatin1Literal( "@QE.ORM.TABLE");}
-	inline QString ANN_TEMPORARY_TABLE_KEY() { return QLatin1Literal( "@QE.ORM.TEMPORARY_TABLE");}
-	
-	inline QString ANN_EXPORT_PARENT_KEY() { return  QLatin1Literal( "@QE.ORM.EXPORT_PARENT");}
-	inline QString ANN_PRIMARY_KEY() { return QLatin1Literal( "@QE.ORM.PRIMARY_KEY");}
-	inline QString ANN_INDEX() { return QLatin1Literal( "@QE.ORM.INDEX");}
-	
-	inline QString ANN_ENABLE() { return QLatin1Literal( "@QE.ORM.ENABLE");}
-}
 
 QEOrmModel::QEOrmModel( const QMetaObject* metaObj)
 	: QEAnnotationModel( metaObj), d_ptr( new QEOrmModelPrivate)
 { 
-	parseAnnotations( metaObj);
+	d_ptr->parseAnnotations( this, metaObj);
 }
 
 QEOrmModel::QEOrmModel(const QEOrmModel &model) noexcept
@@ -49,66 +39,15 @@ QEOrmModel &QEOrmModel::operator=(const QEOrmModel & model) noexcept
 	return *this;
 }
 
-/// @brief It gets the primary keys from annotation.
-/// 
-/// If there is no explicit primary key, it will use the first
-/// 'auto_increment' file as a primary key.
-QStringList QEOrmModel::parseAnnotationsGetPrimaryKeys() const 
-{
-	QStringList primaryKeys = annotation( ANN_CLASS_ID(), ANN_PRIMARY_KEY())
-		.value( QString()).toString()
-		.split( ',', QString::SkipEmptyParts);
-		
-	if( primaryKeys.isEmpty())
-	{
-		auto itr = find_if(
-			begin( d_ptr->columnsByProperty),
-			end( d_ptr->columnsByProperty),
-			[]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
-			{ return item.second.isAutoIncrement();});
-		
-		if( itr != end( d_ptr->columnsByProperty))
-			primaryKeys.push_back( itr->second.columnName());
-	}
-	
-	return primaryKeys;
-}
-
-void QEOrmModel::parseAnnotations( const QMetaObject* metaObj )
-{
-	// Table
-	d_ptr->table = annotation( ANN_CLASS_ID(), ANN_TABLE_KEY())
-		.value( QString( metaObj->className())).toString();
-	// Columns			
-	const bool exportParents = annotation( ANN_CLASS_ID(), ANN_EXPORT_PARENT_KEY())
-		.value( false).toBool();
-	const int begin = (exportParents) ? 0 : metaObj->propertyOffset();
-	for( int i = begin; i < metaObj->propertyCount(); ++i)
-	{
-		QMetaProperty property = metaObj->property(i);
-		const QString propertyName = property.name();
-		const bool isEnable = annotation( propertyName, ANN_ENABLE())
-			.value( true).toBool();
-		if( isEnable )
-		{
-			d_ptr->columnsByProperty.insert( 
-				make_pair( propertyName,
-						   QEOrmColumnDef( propertyName, property.type(), this)));
-		}
-	}
-	
-	// Primary keys
-	d_ptr->primaryKey = parseAnnotationsGetPrimaryKeys();
-		
-	// Indexes
-	/// @todo Indexes
-}
 
 QString QEOrmModel::table() const noexcept
 { return d_ptr->table; }
 
-QStringList QEOrmModel::primaryKey() const noexcept
+vector<QEOrmColumnDef> QEOrmModel::primaryKey() const noexcept
 { return d_ptr->primaryKey; }
+
+vector< QEOrmColumnDef > QEOrmModel::noPrimaryKey() const noexcept
+{ return d_ptr->noPrimaryKey; }
 
 QEOrmColumnDef QEOrmModel::columnByProperty(const QString &property) const noexcept
 {
@@ -121,13 +60,8 @@ QEOrmColumnDef QEOrmModel::columnByProperty(const QString &property) const noexc
 
 QEOrmColumnDef QEOrmModel::columnByName(const QString &columnName) const noexcept
 {
-	const auto itr = find_if( 
-		begin(d_ptr->columnsByProperty), 
-		end(d_ptr->columnsByProperty),
-		[&columnName]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
-			{ return columnName == item.second.columnName();});
-	
-	if( itr != end( d_ptr->columnsByProperty))
+	const auto itr = d_ptr->columnsByName.find( columnName);
+	if( itr != end( d_ptr->columnsByName))
 		return itr->second;
 	
 	return QEOrmColumnDef();
@@ -140,8 +74,8 @@ QStringList QEOrmModel::columnNames() const
 		begin(d_ptr->columnsByProperty), 
 		end(d_ptr->columnsByProperty),
 		std::back_inserter(columnNames),
-		[]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
-		{ return item.second.columnName(); });
+			[]( const QEOrmModelPrivate::ColumnDefBy::value_type& item)
+			{ return item.second.dbColumnName(); });
 
 	return columnNames;
 }
@@ -149,14 +83,16 @@ QStringList QEOrmModel::columnNames() const
 QString QEOrmModel::autoIncrementColumnName() const
 {
 	QString columnName;
+
 	const auto itr = find_if( 
 		begin(d_ptr->columnsByProperty), 
 		end(d_ptr->columnsByProperty),
-		[]( const QEOrmModelPrivate::ColumnMapByProperty::value_type& item)
-			{ return item.second.isAutoIncrement();});
-	if( itr != end( d_ptr->columnsByProperty))
-		columnName = itr->second.columnName();
+		[]( const QEOrmModelPrivate::ColumnDefBy::value_type& item)
+			{ return item.second.isDbAutoIncrement();});
 	
+	if( itr != end( d_ptr->columnsByProperty))
+		columnName = itr->second.dbColumnName();
+
 	return columnName;
 }
 

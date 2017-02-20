@@ -15,8 +15,8 @@
  */
 
 #include "SQLGenerator.hpp"
+#include <QEOrmColumnDef.hpp>
 #include <QTextStream>
-
 
 using namespace std;
 
@@ -46,8 +46,15 @@ QString SQLGenerator::createTableIfNotExist(const QEOrmModel &model) const
 QString SQLGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) const
 {
 	QString pkDef;
-	if( ! model.primaryKey().isEmpty())
-		pkDef = QString( ", PRIMARY KEY (%1)").arg( model.primaryKey().join( QLatin1Char(',')));
+	const vector<QEOrmColumnDef> pk = model.primaryKey();
+	if( ! pk.empty())
+	{
+		QStringList pkColumNames;
+		for( const QEOrmColumnDef& colDef: pk)
+			pkColumNames << colDef.dbColumnName();
+		
+		pkDef = QString( ", PRIMARY KEY (%1)").arg( pkColumNames.join( QLatin1Char(',')));
+	}
 	return pkDef;
 }
 
@@ -62,7 +69,7 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 	{
 		const QLatin1Char quotationMark ('\'');
 		const QLatin1Char space(' ');
-		const uint maxLength = columnDef.maxLength();
+		const uint maxLength = columnDef.dbMaxLength();
 		
 		// Name
 		os << quotationMark << column << quotationMark << space;
@@ -70,20 +77,20 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 		// type 
 		os << getDBType( 
 			static_cast<QMetaType::Type>( columnDef.propertyType()), 
-						columnDef.maxLength()) << space;
+						columnDef.dbMaxLength()) << space;
 	
 		// Null
-		if( columnDef.isNull() )
+		if( columnDef.isDbNullable() )
 			os << QLatin1Literal( "NULL ");
 		else
 			os << QLatin1Literal( "NOT NULL ");
 		
 		// Default value
-		if( ! columnDef.defaultValue().isNull() )
-			os << QLatin1Literal( "DEFAULT " ) << columnDef.defaultValue().toString() << space;
+		if( ! columnDef.dbDefaultValue().isNull() )
+			os << QLatin1Literal( "DEFAULT " ) << columnDef.dbDefaultValue().toString() << space;
 		
 		// Auto-increment
-		if( columnDef.isAutoIncrement())
+		if( columnDef.isDbAutoIncrement())
 			os << autoIncrementKeyWord() << space; 
 	}
 	
@@ -158,3 +165,71 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 	}
 }
 
+
+QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &model) const 
+{
+	QStringList pkWhereClause;
+	for( QEOrmColumnDef colDef: model.primaryKey())
+	{
+		const QVariant value = o->property( colDef.propertyName().toLocal8Bit().constData());
+		pkWhereClause << QString(" %1 == '%2'")
+				.arg( colDef.dbColumnName())
+				.arg( value.toString());
+	}
+	
+	return pkWhereClause.join( QLatin1Literal(" AND "));
+}
+
+QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrmModel &model) const
+{
+	QString stmt;
+	QTextStream os;
+	
+	os << QLatin1Literal( "SELECT * FROM '") << model.table() << QLatin1Literal("' WHERE ");
+	os << generateWhereClause( o, model) << QLatin1Literal( " LIMIT 1");
+	
+	return stmt;
+}
+
+QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmModel &model) const 
+{
+
+	QStringList values;
+	const QStringList columnNames = model.columnNames();
+	for( const QString& colName: columnNames)
+	{
+		const QEOrmColumnDef colDef = model.columnByName( colName);
+		const QVariant value = o->property( colDef.propertyName().toLocal8Bit().constData());
+		values << value.toString();
+	}
+	
+	QString stmt;
+	QTextStream os;
+	os << QLatin1Literal( "INSERT INTO '") << model.table() 
+		<< QLatin1Literal("' (") << columnNames.join( QLatin1Literal(", ")) 
+		<< QLatin1Literal(") VALUES (") << values.join( QLatin1Literal(", ")) 
+		<< QLatin1Literal(")");
+
+	return stmt;
+}
+
+QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmModel& model) const
+{
+
+	QStringList setExpList;
+	for( const QEOrmColumnDef& col: model.noPrimaryKey())
+	{
+		const QVariant value = o->property( col.propertyName().toLocal8Bit().constData());
+		setExpList << QString("%1 = %2")
+			.arg( col.dbColumnName())
+			.arg( value.toString());
+	}
+	
+	QString stmt;
+	QTextStream os;
+	os << QLatin1Literal( "UPDATE '") << model.table() 
+		<< QLatin1Literal( "' SET ") << setExpList.join( QLatin1Literal(", "))
+		<< QLatin1Literal( " WHERE ") << generateWhereClause( o, model);
+
+	return stmt;
+}

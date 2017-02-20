@@ -15,30 +15,23 @@
  */
 
 #pragma once
+#include "QEOrmModelPrivate.hpp"
 #include <QEAnnotation/QEAnnotation.hpp>
 #include <QEOrmColumnDef.hpp>
 
 QE_BEGIN_NAMESPACE
-
-class QEOrmModelPrivate : public QSharedData 
-{
-	public:
-		using ColumnMapByProperty = std::map<QString, QEOrmColumnDef>;
-		
-		QString table;
-		ColumnMapByProperty columnsByProperty;
-		QStringList primaryKey;
-};
-
 class QEOrmModel : public QEAnnotationModel
 {
 	public:
 		explicit QEOrmModel( const QMetaObject* meta);
 		QEOrmModel( const QEOrmModel& ) noexcept;
 		QEOrmModel& operator=( const QEOrmModel& ) noexcept;
-		
+	
+		// Table
 		QString table() const noexcept;
-		QStringList primaryKey() const noexcept;
+		std::vector<QEOrmColumnDef> primaryKey() const noexcept;
+		std::vector<QEOrmColumnDef> noPrimaryKey() const noexcept;
+		
 		QEOrmColumnDef columnByProperty( const QString & property) const noexcept;
 		QEOrmColumnDef columnByName( const QString & columnName) const noexcept;
 		QStringList columnNames() const;
