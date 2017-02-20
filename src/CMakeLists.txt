@@ -16,6 +16,9 @@ set( QEOrm_SRCS
 	QEOrmModel.cpp QEOrmModelPrivate.cpp
 	QEOrmColumnDef.cpp QEOrmColumnDefPrivate.cpp
 	DBDriver/SQLGenerator.cpp DBDriver/SQliteGenerator.cpp )
+if( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+	add_definitions( -Wall)
+endif()
 
 # Link
 add_library( QEOrm SHARED ${QEOrm_SRCS})
