@@ -14,33 +14,4 @@
  * information use the contact form at http://www.dmious.com/contact-us.
  */
 
-#include "FKClass.hpp"
-
-namespace {
-    const static int FKClassTypeId = qRegisterMetaType<FKClass*>();
-}
-
-FKClass::FKClass( QObject* parent)
-	: QObject(parent)
-{}
-		
-FKClass::FKClass( const FKClass& other) noexcept
-	: QObject( nullptr),
-	id( other.id),
-	value( other.value),
-	description( other.description)
-{}
-
-FKClass& FKClass::operator=( const FKClass& other) noexcept
-{
-	id = other.id;
-	value = other.value;
-	description = other.description;
-	return *this;
-}
-		
-bool FKClass::operator==( const FKClass& other) const noexcept
-{
-	return value == other.value && 
-		description == other.description;
-}
+#include "QEOrmContainerWrapper.hpp"

@@ -28,13 +28,16 @@ namespace {
 
 QEOrmForeignDef::QEOrmForeignDef( 
 		QEOrmModel& targetModel,
+		const QByteArray& propertyName,
 		const QEOrmModel& reference, 
 		const vector<QEOrmColumnDef>& primaryKey)
-	: m_reference( reference), m_refPrimaryKey( primaryKey)
+	: m_propertyName( propertyName), m_reference( reference), 
+	m_refPrimaryKey( primaryKey)
 {
 	for( QEOrmColumnDef pkColDef : primaryKey)
 	{
-		const QString fkColName = generateValidFKName( pkColDef.dbColumnName(), targetModel, reference);
+		const QString fkColName = generateValidFKName( pkColDef.dbColumnName(), 
+				targetModel, reference);
 		pkColDef.setDbColumnName( fkColName);
 		m_foreignKey.push_back( pkColDef);
 	}
@@ -47,18 +50,9 @@ const vector<QEOrmColumnDef>& QEOrmForeignDef::foreignKeys() const noexcept
 const vector<QEOrmColumnDef>& QEOrmForeignDef::referenceKeys() const noexcept
 { return m_refPrimaryKey;}
 
-#if 0
-uint QEOrmForeignDef::size() const noexcept
-{ return m_foreignKey.size(); }
-	
-QEOrmColumnDef QEOrmForeignDef::foreignKey( const uint idx) const
-{ return m_foreignKey[idx]; }
-
-QEOrmColumnDef QEOrmForeignDef::referenceKey( const uint idx ) const
-{ return m_refPrimaryKey[idx]; }
-#endif
-
+const QByteArray& QEOrmForeignDef::propertyName() const noexcept
+{ return m_propertyName;}
+	 
 QEOrmModel QEOrmForeignDef::reference() const
 { return m_reference; }
-
 

@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2017 francisco miguel garcia rodriguez
+ * Copyright (C) 2017 Francisco Miguel García Rodríguez
  * Contact: http://www.dmious.com/qe/licensing/
  *
  * This file is part of the QE Common module of the QE Toolkit.
  *
- * $QE_BEGIN_LICENSE:LGPL21$
+ * $QE_BEGIN_LICENSE$
  * Commercial License Usage
  * Licensees holding valid commercial QE licenses may use this file in
  * accordance with the commercial license agreement provided with the
@@ -12,8 +12,17 @@
  * a written agreement between you and The Dmious Company. For licensing terms
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
  */
-
 #include "QEOrmModel.hpp"
 #include "QEOrmModelPrivate.hpp"
 #include <QEAnnotation/QEAnnotationModel.hpp>
@@ -21,9 +30,6 @@
 #include <utility>
 
 using namespace std;
-
-namespace {
-}
 
 QEOrmModel::QEOrmModel( const QMetaObject* metaObj)
 	: QEAnnotationModel( metaObj) 
@@ -62,21 +68,6 @@ QEOrmColumnDef QEOrmModel::findColumnByName(const QString &columnName) const noe
 				{ return colDef.dbColumnName() == columnName;});
 }
 
-#if 0
-QStringList QEOrmModel::columnNames() const
-{
-	QStringList columnNames;
-	transform( 
-		begin(d_ptr->columnsByProperty), 
-		end(d_ptr->columnsByProperty),
-		std::back_inserter(columnNames),
-			[]( const QEOrmModelPrivate::ColumnDefBy::value_type& item)
-			{ return item.second.dbColumnName(); });
-
-	return columnNames;
-}
-#endif
-
 QEOrmColumnDef QEOrmModel::findAutoIncrementColumn() const noexcept
 {
 	return d_ptr->findColumnDefIf( 
@@ -87,30 +78,9 @@ QEOrmColumnDef QEOrmModel::findAutoIncrementColumn() const noexcept
 vector< QEOrmColumnDef > QEOrmModel::columns() const noexcept
 { return d_ptr->columns(); }
 
-
-#if 0
-QString QEOrmModel::getReferenceName( QString columnName) const
+void QEOrmModel::addRefToOne( const QByteArray& propertyName, const QEOrmModel &reference)
 {
-	QEOrmColumnDef findDef = columnByName( columnName);
-	if( findDef.isValid())
-	{
-		uint id = 0;
-		QString columnNameBase = QString( "%1%2").arg( model.table()).arg( columnName);
-		findDef = columnByName( columnNameBase);
-		while( findDef.isValid())
-		{
-			columnNameBase = QString( "%1%2%3").arg( model.table()).arg( columnName).arg(++id);
-			findDef = columnByName( columnNameBase);
-		}
-		columnName = columnNameBase;
-	}
-	return columnName;
-}
-#endif
-
-void QEOrmModel::addRefToOne( const QEOrmModel &reference)
-{
-	QEOrmForeignDef fk( *this, reference, reference.primaryKey());
+	QEOrmForeignDef fk( *this, propertyName, reference, reference.primaryKey());
 	d_ptr->addReferencesToOne( fk);
 }
 

@@ -34,6 +34,7 @@
 #include <QDebug>
 #include <utility>
 #include <map>
+#include <stack>
 #include <mutex>
 
 using namespace std;
@@ -135,7 +136,8 @@ namespace {
 		return query;
 	}
 	
-	QSqlQuery executeSqlOrThrow( const QVariantList& bindValues, const QString& stmt, const QString& errorMsg)
+	QSqlQuery executeSqlOrThrow( const QVariantList& bindValues, 
+			const QString& stmt, const QString& errorMsg)
 	{
 		QSqlQuery query;
 		query.prepare( stmt);
@@ -145,7 +147,9 @@ namespace {
 		return executeSqlOrThrow( query, errorMsg);
 	}
 	
-	QSqlQuery executeSqlOrThrow( const QObject* object, const QEOrmModel& model, const QString& stmt, const QString& errorMsg )
+	QSqlQuery executeSqlOrThrow( const QObject* object, 
+			const stack<QObject*> &context, const QEOrmModel& model, 
+			const QString& stmt, const QString& errorMsg )
 	{
 		QSqlQuery query;
 		query.prepare( stmt);
@@ -159,6 +163,26 @@ namespace {
 				query.bindValue( QString(":%1").arg( colDef.dbColumnName()), value);
 			}
 		}
+
+		if( !context.empty())
+		{
+			QObject *contextTopObject = context.top();
+			for( const QEOrmForeignDef& fkDef : model.referencesToOne())
+			{
+				const vector<QEOrmColumnDef>& foreignKeys = fkDef.foreignKeys();
+				const vector<QEOrmColumnDef>& refKeys = fkDef.referenceKeys();
+				for( uint i = 0; i < foreignKeys.size(); ++i) 
+				{
+					const QVariant value = contextTopObject->property( 
+							refKeys[i].propertyName()); 
+
+					query.bindValue( 
+						QString( ":%1").arg( foreignKeys[i].dbColumnName()),
+						value);
+				}
+			}
+		}
+	
 	
 		return executeSqlOrThrow( query, errorMsg);
 	}
@@ -172,6 +196,19 @@ namespace {
 			executeSqlOrThrow( query, errorMsg);
 		}
 	}
+
+
+	struct ScopeStackedContext 
+	{
+		ScopeStackedContext( QObject* obj, stack<QObject*>& context)
+			:m_context( context)
+		{ context.push( obj); }
+
+		~ScopeStackedContext()
+		{ m_context.pop();}
+
+		stack<QObject*> &m_context;
+	};
 }
 
 std::unique_ptr<QEOrm> QEOrm::m_instance;
@@ -199,16 +236,49 @@ QEOrmModel QEOrm::getModel( const QMetaObject* metaObject) const
 		[metaObject](){ return QEOrmModel(metaObject);});
 }
 
-void QEOrm::save(QObject *const source) const
+void QEOrm::save(QObject *const source, stack<QObject*> context) const
 {
+
 	const QMetaObject *mo = source->metaObject();
 	QEOrmModel model = getModel(mo);
 	
 	checkAndCreateDBTable( model);
 	if( existsObjectOnDB( source, model))
-		updateObjectOnDB( source, model);
+		updateObjectOnDB( source, context, model);
 	else
-		insertObjectOnDB( source, model);
+		insertObjectOnDB( source, context, model);
+
+	saveOneToMany( source, context, model);
+}
+
+
+void QEOrm::saveOneToMany(QObject *const source, 
+		stack<QObject*>& context, const QEOrmModel& model) const
+{
+	ScopeStackedContext _( source, context);
+	for( const QEOrmColumnDef& colDef : model.columns())
+	{
+		if( colDef.mappingType() == QEOrmColumnDef::MappingType::OneToMany)
+		{
+			// const QMetaObject* refMetaObject = colDef.mappingEntity();
+			// const QEOrmModel refModel = getModel( refMetaObject);
+			const QByteArray& propertyName = colDef.propertyName();
+			const QVariant propertyValue = source->property( propertyName);
+			if( ! propertyValue.canConvert<QVariantList>())
+				throw runtime_error( 
+					QString("QE Orm can only use QVariantList for mapping property %1") 
+						.arg( QString(propertyName)).toStdString());
+
+			QVariantList values = propertyValue.toList();
+			for( QVariant& value : values)
+			{
+				QObject *refItem = value.value<QObject*>();
+				if( refItem )
+					save( refItem, context);
+			}
+			qDebug() << "Property " << propertyName << " has " << values.size() << " items.";
+		}
+	}
 }
 
 void QEOrm::load(const QVariantList pk, QObject *target) const
@@ -266,10 +336,11 @@ bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) con
 	return query.next();
 }
 
-void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
+void QEOrm::insertObjectOnDB(QObject *source, const stack<QObject*>& context, 
+		const QEOrmModel &model) const
 {
 	QSqlQuery query = executeSqlOrThrow( 
-		source, model,
+		source, context, model, 
 		m_sqlGenerator->generateInsertObjectStmt( source, model),
 		QLatin1Literal("QEOrm cannot insert a new object into database %1: %2"));
 
@@ -283,10 +354,11 @@ void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
 	}
 }
 
-void QEOrm::updateObjectOnDB(const QObject *source, const QEOrmModel &model) const
+void QEOrm::updateObjectOnDB(const QObject *source, 
+		const stack<QObject*>& context, const QEOrmModel &model) const
 {
 	executeSqlOrThrow(
-		source, model,
+		source, context, model,
 		m_sqlGenerator->generateUpdateObjectStmt( source, model),
 		QLatin1Literal("QEOrm cannot update an object from database %1: %2"));
 }

@@ -28,7 +28,7 @@ class QEOrmModel : public QEAnnotationModel
 		QEOrmModel& operator=( const QEOrmModel& ) noexcept;
 
 		/// @brief Add reference Many (this model) to one @p reference
-		void addRefToOne(const QEOrmModel& reference);
+		void addRefToOne( const QByteArray& propertyName, const QEOrmModel& reference);
 
 		// DB 	
 		QString table() const noexcept;

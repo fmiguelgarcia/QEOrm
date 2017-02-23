@@ -14,6 +14,7 @@ set( QEOrm_BUILD_VERSION 0)
 set( QEOrm_SRCS
 	QEOrmModelPrivate.cpp QEOrmModel.cpp 
 	QEOrmColumnDefPrivate.cpp QEOrmColumnDef.cpp 
+	QEOrmContainerWrapper.cpp
 	QEOrmForeignDef.cpp
 	DBDriver/SQLGenerator.cpp DBDriver/SQliteGenerator.cpp
 	QEOrm.cpp )

@@ -1,14 +1,3 @@
-#pragma once
-#include <QEOrmModel.hpp>
-#include <DBDriver/SQLGenerator.hpp>
-#include <QECommon/QES11n.hpp>
-#include <QSet>
-#include <memory>
-#include <map>
-#include <mutex>
-
-QE_BEGIN_NAMESPACE
-
 /**
  * @section ORM_DESCRIPTION ORM General Description 
  * QE ORM is a Object-relational mapping (ORM, O/RM, or O/R mapping tool) that allows you to map
@@ -61,13 +50,25 @@ QE_BEGIN_NAMESPACE
  * 	if SQLite is used as database, and you do not define any value for this, a @c TEXT column type will be used to store this property.
  * - @c @QE.ORM.NULL : If this is @c false, the column table will be created as @c NOT @c NULL. By default, it is @c true.
  */
+#pragma once
+#include <QEOrmModel.hpp>
+#include <DBDriver/SQLGenerator.hpp>
+#include <QECommon/QES11n.hpp>
+#include <QSet>
+#include <memory>
+#include <map>
+#include <stack>
+#include <mutex>
+
+QE_BEGIN_NAMESPACE
 
 class QEOrm 
 {
 	public:
 		static QEOrm& instance();
 
-		void save( QObject *const source) const;
+		void save( QObject *const source, std::stack<QObject*> context 
+				= std::stack<QObject*>()) const;
 		void load( const QVariantList pk, QObject* target) const;
 
 	private:
@@ -76,11 +77,16 @@ class QEOrm
 		QEOrmModel getModel( const QMetaObject *metaObject) const;
 		void checkAndCreateDBTable( const QEOrmModel& model) const;
 		
-		void insertObjectOnDB(QObject *source, const QEOrmModel &model) const;
-		void updateObjectOnDB(const QObject *source, const QEOrmModel& model) const;
+		void insertObjectOnDB(QObject *source, 
+				const std::stack<QObject*>& context, const QEOrmModel &model) const;
+		void updateObjectOnDB(const QObject *source, 
+				const std::stack<QObject*>& context, const QEOrmModel& model) const;
+		void saveOneToMany(QObject *source, 
+				std::stack<QObject*>& context, const QEOrmModel& model) const;
+
 		bool existsObjectOnDB(const QObject *source, const QEOrmModel& model) const;
 		QString generateCreateTableIfNotExists( const QEOrmModel& model) const;
-		
+
 	private:
 		mutable std::mutex m_cachedModelsMtx;
 		mutable std::map<const QMetaObject*, QEOrmModel> m_cachedModels;

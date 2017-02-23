@@ -32,10 +32,13 @@ class FKClass : public QObject
 		explicit FKClass( QObject* parent = nullptr);
 		FKClass( const FKClass& other) noexcept;
 		FKClass& operator= ( const FKClass& other) noexcept;
+
+		bool operator==( const FKClass& other) const noexcept;
 	
 	public:
-		int id;
+		int id = 0;
 		double value;
 		QString description;
 };
 Q_DECLARE_METATYPE( FKClass*);
+Q_DECLARE_METATYPE( FKClass);

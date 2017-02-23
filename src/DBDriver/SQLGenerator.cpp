@@ -77,9 +77,8 @@ QStringList SQLGenerator::createTablesIfNotExist(const QEOrmModel &model) const
 	{
 		if( columnDef.mappingType() != QEOrmColumnDef::MappingType::NoMappingType)
 		{
-			/// @todo Generate table and add column if
 			QEOrmModel mapModel( columnDef.mappingEntity());
-			mapModel.addRefToOne( model);
+			mapModel.addRefToOne( columnDef.propertyName(), model);
 			sqlCommands << createTablesIfNotExist( mapModel);
 		}
 	}
@@ -263,7 +262,6 @@ QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrm
 
 QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmModel &model) const 
 {
-
 	QStringList values;
 	QStringList columnNames;
 
@@ -275,6 +273,12 @@ QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmMod
 			values << QString( ":%1").arg( colDef.dbColumnName());
 		}
 	}
+	for( const QEOrmForeignDef& fkDef : model.referencesToOne())
+		for( const QEOrmColumnDef& fkColDef : fkDef.foreignKeys())
+		{
+			columnNames << fkColDef.dbColumnName();
+			values << QString( ":%1").arg( fkColDef.dbColumnName());
+		}
 	
 	QString stmt;
 	QTextStream os( &stmt);

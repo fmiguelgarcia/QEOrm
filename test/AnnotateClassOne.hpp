@@ -18,7 +18,10 @@
 #include <QObject>
 #include <QString>
 #include <QDateTime>
+#include <QVariant>
 #include "FKClass.hpp"
+#include <iterator>
+#include <QEOrmContainerWrapper.hpp>
 
 class AnnotateClassOne
 	: public QObject
@@ -31,11 +34,13 @@ class AnnotateClassOne
 	// Q_PROPERTY( QDateTime end MEMBER m_end)
 	Q_PROPERTY( QDateTime end READ end WRITE setEnd)
 	
-	Q_PROPERTY( std::vector<FKClass> fkClass READ fkClass WRITE setFkClass)
-	
+	// Q_PROPERTY( std::vector<FKClass> fkClass READ fkClass WRITE setFkClass)
+	Q_PROPERTY( QVariantList fkClass READ m_fkClassCW WRITE m_fkClassCW)
+
 	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
 	Q_CLASSINFO( "user", "@QE.ORM.NULL=false @QE.ORM.MAX_LENGTH=256")
 	Q_CLASSINFO( "fkClass", "@QE.ORM.MAPPING.TYPE=OneToMany @QE.ORM.MAPPING.ENTITY=FKClass @QE.ORM.MAPPING.FETCH=Lazy")
+	Q_CLASSINFO( "fkClassWrapper", "QE.ORM.ENABLE=false")
 
 	
 	public:
@@ -50,6 +55,9 @@ class AnnotateClassOne
 		
 		std::vector<FKClass> fkClass() const;
 		void setFkClass( const std::vector<FKClass>& );
+
+		QVariantList wrapFkClass() const;
+		void setWrapFkClass( const QVariantList& value);
 		
 	public:
 		int m_id;
@@ -57,4 +65,9 @@ class AnnotateClassOne
 		QDateTime m_begin;
 		QDateTime m_end;
 		std::vector<FKClass> m_fkClass;
+		std::vector<FKClass> m_fkClass2;
+		
+		//QE_ORM_MAP_ONE_TO_MANY( fk2, m_fkClass2)
+
+		QEOrmContainerWrapper< decltype(m_fkClass) > m_fkClassCW {m_fkClass};
 };

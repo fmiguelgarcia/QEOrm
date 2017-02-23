@@ -18,7 +18,7 @@
 using namespace std;
 
 AnnotateClassOne::AnnotateClassOne(QObject *parent)
-	: QObject( parent)
+	: QObject( parent) /*, m_fkClassWrapper( m_fkClass)*/
 { }
 
 QDateTime AnnotateClassOne::begin() const
@@ -46,4 +46,15 @@ vector<FKClass> AnnotateClassOne::fkClass() const
 
 void AnnotateClassOne::setFkClass( const std::vector<FKClass>& v)
 { m_fkClass = v; }
+
+QVariantList AnnotateClassOne::wrapFkClass() const
+{
+	QVariantList varList;
+	return varList;
+}
+
+void AnnotateClassOne::setWrapFkClass( const QVariantList& value)
+{
+}	
+	
 	
