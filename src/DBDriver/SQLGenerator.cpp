@@ -12,8 +12,17 @@
  * a written agreement between you and The Dmious Company. For licensing terms
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
  */
-
 #include "SQLGenerator.hpp"
 #include <QEOrmColumnDef.hpp>
 #include <QTextStream>
@@ -44,7 +53,7 @@ QString SQLGenerator::createTableIfNotExist(const QEOrmModel &model) const
 	for( QEOrmColumnDef columnDef: model.columns())
 	{
 		if( columnDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
-			sqlColumnDef << generateColumnDefinition( model, columnDef);
+			sqlColumnDef << generateColumnDefinition( columnDef);
 	}
 
 	QString primaryKeyDef = generatePrimaryKeyDefinition( model);
@@ -111,8 +120,7 @@ QString SQLGenerator::generateForeignKeyDefinition( const QEOrmModel& model) con
 	return fkDef;
 }
 
-QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model, 
-													const QEOrmColumnDef column) const
+QString SQLGenerator::generateColumnDefinition( const QEOrmColumnDef column) const
 {
 	QString sqlColumnDef;
 	QTextStream os( &sqlColumnDef);
@@ -147,35 +155,6 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmModel& model,
 
 QString SQLGenerator::autoIncrementKeyWord() const
 { return QLatin1Literal( "AUTO_INCREMENT"); }
-
-QString SQLGenerator::variantToSQL( const QVariant &value, const int propertyType) const
-{
-	QString strValue;
-	QTextStream os( &strValue);
-	const QChar quote = QLatin1Char('\'');
-	
-	switch( propertyType)
-	{ 
-		case QMetaType::QByteArray:
-			os << quote << value.toByteArray().toHex() << quote;
-			break;
-		case QMetaType::QTime:
-			os << quote << value.toTime().toString( QLatin1Literal("HH:mm:ss")) << quote;
-			break;
-		case QMetaType::QDate:
-			os << quote << value.toDate().toString( QLatin1Literal("yyyy-MM-dd")) << quote;
-			break;
-		case QMetaType::QDateTime:
-			os << quote << value.toDateTime().toString( QLatin1Literal("yyyy-MM-dd HH:mm:ss")) << quote;
-			break;
-		case QMetaType::QString:
-			os << quote << value.toString().replace(  QLatin1Literal("'"), QLatin1Literal("\\'")) << quote;
-			break;
-		default:
-			os << value.toString();
-	}
-	return strValue;
-}
 
 QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint size) const
 {
@@ -243,23 +222,20 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 }
 
 
-QString SQLGenerator::generateWhereClause( const QVariantList& pk,  const QEOrmModel &model) const 
+QString SQLGenerator::generateWhereClause( const QEOrmModel &model) const 
 {
 	QStringList pkWhereClause;
-	vector<QEOrmColumnDef> modelPk = model.primaryKey();
+	vector<QEOrmColumnDef> pkColumns = model.primaryKey();
 
-	int count = std::min<uint>( pk.size(), modelPk.size());
-	for( int i = 0; i < count; ++i)
-	{
-		const QEOrmColumnDef colDef = modelPk[i];
-		pkWhereClause << QString(" %1 == %2")
+	for( const QEOrmColumnDef& colDef : pkColumns) 
+		pkWhereClause << QString(" %1 == :%2")
 			.arg( colDef.dbColumnName())
-			.arg( variantToSQL( pk[i], colDef.propertyType()));
-	}
+			.arg( colDef.dbColumnName());
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
 }
 
+/*
 QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &model) const 
 {
 	QStringList pkWhereClause;
@@ -272,7 +248,7 @@ QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &m
 	}
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
-}
+}*/
 
 QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrmModel &model) const
 {
@@ -280,7 +256,7 @@ QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrm
 	QTextStream os( &stmt);
 	
 	os << QLatin1Literal( "SELECT * FROM '") << model.table() << QLatin1Literal("' WHERE ");
-	os << generateWhereClause( o, model) << QLatin1Literal( " LIMIT 1");
+	os << generateWhereClause( model) << QLatin1Literal( " LIMIT 1");
 	
 	return stmt;
 }
@@ -296,11 +272,7 @@ QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmMod
 		if( colDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
 		{
 			columnNames << colDef.dbColumnName();
-			const QVariant value = o->property( colDef.propertyName().constData());
-			if( colDef.isDbAutoIncrement() && value.toInt() == 0)
-				values << QLatin1Literal( "null");
-			else
-				values << variantToSQL( value, colDef.propertyType());
+			values << QString( ":%1").arg( colDef.dbColumnName());
 		}
 	}
 	
@@ -322,10 +294,10 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 	{
 		if( !col.isPartOfPrimaryKey())
 		{
-			const QVariant value = o->property( col.propertyName().constData());
-			setExpList << QString("%1 = %2")
+			// const QVariant value = o->property( col.propertyName().constData());
+			setExpList << QString("%1 = :%2")
 				.arg( col.dbColumnName())
-				.arg( variantToSQL( value, col.propertyType()));
+				.arg( col.dbColumnName());
 		}
 	}
 	
@@ -333,7 +305,7 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 	QTextStream os( &stmt);
 	os << QLatin1Literal( "UPDATE '") << model.table() 
 		<< QLatin1Literal( "' SET ") << setExpList.join( QLatin1Literal(", "))
-		<< QLatin1Literal( " WHERE ") << generateWhereClause( o, model);
+		<< QLatin1Literal( " WHERE ") << generateWhereClause( model);
 
 	return stmt;
 }
@@ -349,6 +321,6 @@ QString SQLGenerator::generateLoadObjectFromDBStmt(const QVariantList& pk, const
 	QTextStream os( &stmt);
 	os << QLatin1Literal(" SELECT ") << columns.join( ", ")
 		<< QLatin1Literal( " FROM '") << model.table() << QLatin1Char('\'')
-		<< QLatin1Literal( " WHERE ") << generateWhereClause( pk, model);
+		<< QLatin1Literal( " WHERE ") << generateWhereClause( model);
 	return stmt;
 }

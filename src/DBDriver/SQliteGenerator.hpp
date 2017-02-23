@@ -12,17 +12,25 @@
  * a written agreement between you and The Dmious Company. For licensing terms
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
  */
-
 #pragma once
-
 #include <DBDriver/SQLGenerator.hpp>
 
+/// @brief It is an specialization of SQL generator for SQLite.
 class SQliteGenerator : public SQLGenerator
 {
 	protected:
 		virtual QString autoIncrementKeyWord() const override;
-		virtual QString generateColumnDefinition( const QEOrmModel& model,
-												  const QEOrmColumnDef column) const override;
+		virtual QString generateColumnDefinition( const QEOrmColumnDef column) const override;
 		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
 };

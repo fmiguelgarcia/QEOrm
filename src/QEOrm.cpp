@@ -1,3 +1,28 @@
+/*
+ * Copyright (C) 2017 Francisco Miguel García Rodríguez
+ * Contact: http://www.dmious.com/qe/licensing/
+ *
+ * This file is part of the QE Common module of the QE Toolkit.
+ *
+ * $QE_BEGIN_LICENSE$
+ * Commercial License Usage
+ * Licensees holding valid commercial QE licenses may use this file in
+ * accordance with the commercial license agreement provided with the
+ * Software or, alternatively, in accordance with the terms contained in
+ * a written agreement between you and The Dmious Company. For licensing terms
+ * and conditions see http://www.dmious.com/qe/terms-conditions. For further
+ * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
+ */
 #include <QEOrm.hpp>
 #include <DBDriver/SQliteGenerator.hpp>
 #include <QSqlDatabase>
@@ -54,6 +79,7 @@ namespace {
 		return true;
 	}
 
+
 	/// @brief It creates a new SQLGenerator based on current default DB driver.
 	SQLGenerator* getSQLGeneratorForDefaultDB()
 	{
@@ -73,26 +99,78 @@ namespace {
 		
 		return itr->second();
 	}
-	
-	QSqlQuery executeSQLOrThrow( const QString& stmt, const QString& errorMsg )
+
+	void debugExecutedQuery( QSqlQuery& query)
 	{
-		qDebug() << "QEOrm SQL statement: " << stmt;
-		QSqlQuery sqlQuery( stmt);
-		const QSqlError sqlError = sqlQuery.lastError();
-		if( sqlError.type() != QSqlError::NoError )
+		QString message;
+		QTextStream os( &message);
+		const QMap<QString, QVariant> boundValues = query.boundValues();
+		
+		os << QLatin1Literal( "QE Orm ") << endl
+			<< QLatin1Literal( "   + query: ") << query.executedQuery() << endl
+			<< QLatin1Literal( "   + parameters: { ");
+		for( const QString boundKey : boundValues.keys())
+			os << QLatin1Char('{') << boundKey << QLatin1Literal(", ") << boundValues[boundKey].toString() << QLatin1Literal("} ");
+		os << QLatin1Char('}') << endl;
+		
+		qDebug() << message;
+	}
+
+	QSqlQuery executeSqlOrThrow( QSqlQuery& query, const QString& errorMsg)
+	{
+		const bool isSuccess = query.exec();
+		debugExecutedQuery( query);
+		
+		if( !isSuccess)
 		{
-			const QString msg =  errorMsg
-				.arg( sqlError.nativeErrorCode())
-				.arg( sqlError.text());
-			throw runtime_error( msg.toStdString());
+			const QSqlError sqlError = query.lastError();
+			if( sqlError.type() != QSqlError::NoError )
+			{
+				const QString msg =  errorMsg
+					.arg( sqlError.nativeErrorCode())
+					.arg( sqlError.text());
+				throw runtime_error( msg.toStdString());
+			}
 		}
-		return sqlQuery;
+		return query;
 	}
 	
-	void executeSQLOrThrow( const QStringList& stmtList, const QString& errorMsg)
+	QSqlQuery executeSqlOrThrow( const QVariantList& bindValues, const QString& stmt, const QString& errorMsg)
+	{
+		QSqlQuery query;
+		query.prepare( stmt);
+		for( int i = 0; i < bindValues.size(); ++i)
+			query.bindValue( i, bindValues[i]);
+		
+		return executeSqlOrThrow( query, errorMsg);
+	}
+	
+	QSqlQuery executeSqlOrThrow( const QObject* object, const QEOrmModel& model, const QString& stmt, const QString& errorMsg )
+	{
+		QSqlQuery query;
+		query.prepare( stmt);
+		for( const QEOrmColumnDef& colDef: model.columns())
+		{
+			if( colDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
+			{
+				QVariant value = object->property( colDef.propertyName());
+				if( colDef.isDbAutoIncrement() && value.toInt() == 0)
+					value = QVariant();
+				query.bindValue( QString(":%1").arg( colDef.dbColumnName()), value);
+			}
+		}
+	
+		return executeSqlOrThrow( query, errorMsg);
+	}
+
+	void executeSqlOrThrow( const QStringList& stmtList, const QString& errorMsg)
 	{
 		for( const QString& stmt: stmtList)
-			executeSQLOrThrow( stmt, errorMsg);
+		{
+			QSqlQuery query;
+			query.prepare( stmt);
+			executeSqlOrThrow( query, errorMsg);
+		}
 	}
 }
 
@@ -138,7 +216,8 @@ void QEOrm::load(const QVariantList pk, QObject *target) const
 	const QMetaObject *mo = target->metaObject();
 	QEOrmModel model = getModel(mo);
 	
-	QSqlQuery query = executeSQLOrThrow(
+	QSqlQuery query = executeSqlOrThrow(
+		pk,
 		m_sqlGenerator->generateLoadObjectFromDBStmt( pk, model),
 		QString( "QEOrm cannot load object from database %1: %2"));
 	
@@ -162,21 +241,35 @@ void QEOrm::checkAndCreateDBTable( const QEOrmModel& model) const
 	if( !isAlreadyChecked)
 	{
 		const QStringList sqlCommands =  m_sqlGenerator->createTablesIfNotExist( model); 
-		executeSQLOrThrow( sqlCommands, QString("QEOrm cannot create table '%1' due to error %2: %3")
+		executeSqlOrThrow( sqlCommands, QString("QEOrm cannot create table '%1' due to error %2: %3")
 				.arg( model.table()));
 	}
 }
 
 bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
-	QSqlQuery query = executeSQLOrThrow( m_sqlGenerator->generateExistsObjectOnDBStmt( source, model),
-										 QString("QEOrm cannot check existance of object into db %1: %2"));
+	QVariantList pkValues;
+	for( const QEOrmColumnDef& colDef: model.primaryKey())
+	{
+		const QVariant value = source->property( colDef.propertyName());
+		if( colDef.isDbAutoIncrement() && value.toInt() == 0)
+			pkValues << QVariant();
+		else
+			pkValues << value;
+	}
+	
+	
+	QSqlQuery query = executeSqlOrThrow( 
+		pkValues,
+		m_sqlGenerator->generateExistsObjectOnDBStmt( source, model),
+		QString("QEOrm cannot check existance of object into db %1: %2"));
 	return query.next();
 }
 
 void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
 {
-	QSqlQuery query = executeSQLOrThrow( 
+	QSqlQuery query = executeSqlOrThrow( 
+		source, model,
 		m_sqlGenerator->generateInsertObjectStmt( source, model),
 		QLatin1Literal("QEOrm cannot insert a new object into database %1: %2"));
 
@@ -192,7 +285,8 @@ void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
 
 void QEOrm::updateObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
-	executeSQLOrThrow(
+	executeSqlOrThrow(
+		source, model,
 		m_sqlGenerator->generateUpdateObjectStmt( source, model),
 		QLatin1Literal("QEOrm cannot update an object from database %1: %2"));
 }

@@ -12,18 +12,29 @@
  * a written agreement between you and The Dmious Company. For licensing terms
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
  */
 
 #include "SQliteGenerator.hpp"
 
-QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const QEOrmColumnDef column) const
+QString SQliteGenerator::generateColumnDefinition( const QEOrmColumnDef column) const
 {
 	QString sqlColumnDef;
 	if( !column.isDbAutoIncrement())
-			sqlColumnDef = SQLGenerator::generateColumnDefinition(model, column);
+			sqlColumnDef = SQLGenerator::generateColumnDefinition( column);
 	else
-		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY AUTOINCREMENT")
-			.arg( column.dbColumnName());
+		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY %2 ")
+			.arg( column.dbColumnName())
+			.arg( autoIncrementKeyWord());
 
 	return sqlColumnDef;
 }
