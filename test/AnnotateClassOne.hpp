@@ -18,6 +18,7 @@
 #include <QObject>
 #include <QString>
 #include <QDateTime>
+#include "FKClass.hpp"
 
 class AnnotateClassOne
 	: public QObject
@@ -30,8 +31,12 @@ class AnnotateClassOne
 	// Q_PROPERTY( QDateTime end MEMBER m_end)
 	Q_PROPERTY( QDateTime end READ end WRITE setEnd)
 	
+	Q_PROPERTY( std::vector<FKClass> fkClass READ fkClass WRITE setFkClass)
+	
 	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
 	Q_CLASSINFO( "user", "@QE.ORM.NULL=false @QE.ORM.MAX_LENGTH=256")
+	Q_CLASSINFO( "fkClass", "@QE.ORM.MAPPING.TYPE=OneToMany @QE.ORM.MAPPING.ENTITY=FKClass @QE.ORM.MAPPING.FETCH=Lazy")
+
 	
 	public:
 		explicit AnnotateClassOne( QObject* parent = nullptr);
@@ -43,9 +48,13 @@ class AnnotateClassOne
 		
 		bool operator == ( const AnnotateClassOne& other) const;
 		
+		std::vector<FKClass> fkClass() const;
+		void setFkClass( const std::vector<FKClass>& );
+		
 	public:
 		int m_id;
 		QString m_user;
 		QDateTime m_begin;
 		QDateTime m_end;
+		std::vector<FKClass> m_fkClass;
 };

@@ -31,74 +31,87 @@ namespace {
 	inline QString ANN_ENABLE() { return QLatin1Literal( "@QE.ORM.ENABLE");}
 }
 
+QEOrmModelPrivate::QEOrmModelPrivate( const QEAnnotationModel& model, const QMetaObject* metaObject)
+{
+	parseAnnotations( model, metaObject);
+}
 
-QEOrmModelPrivate::QEOrmModelPrivate() = default;
 QEOrmModelPrivate::QEOrmModelPrivate(const QEOrmModelPrivate &other) = default;
 
 /// @brief It gets the primary keys from annotation.
 /// 
 /// If there is no explicit primary key, it will use the first
 /// 'auto_increment' file as a primary key.
-vector<QEOrmColumnDef> QEOrmModelPrivate::parseAnnotationsGetPrimaryKeys( const QEAnnotationModel* model) const 
+vector<QEOrmColumnDef> QEOrmModelPrivate::parseAnnotationsGetPrimaryKeys( const QEAnnotationModel& model) const 
 {
 	vector<QEOrmColumnDef> pk;
-	QStringList pkPropertyNames = model->annotation( ANN_CLASS_ID(), ANN_PRIMARY_KEY())
+	QStringList pkPropertyNames = model.annotation( ANN_CLASS_ID(), ANN_PRIMARY_KEY())
 		.value( QString()).toString()
 		.split( ',', QString::SkipEmptyParts);
 	
 	if( pkPropertyNames.isEmpty())
 	{
-		auto itr = find_if(
-			begin( columnsByProperty),
-			end( columnsByProperty),
-				[]( const QEOrmModelPrivate::ColumnDefBy::value_type& item)
-				{ return item.second.isDbAutoIncrement();});
-		if( itr != end( columnsByProperty))
-			pkPropertyNames << itr->second.propertyName();
+		QEOrmColumnDef colDef = findColumnDefIf(
+			[]( const QEOrmColumnDef& colDef)
+				{ return colDef.isDbAutoIncrement();});
+
+		if( colDef.isValid())
+			pkPropertyNames << colDef.propertyName();
 	}
-	
+
 	for( QString pkPropName: pkPropertyNames)
 	{
-		auto itr = columnsByProperty.find( pkPropName);
-		if( itr != end( columnsByProperty))
-			pk.push_back( itr->second);
+		QEOrmColumnDef colDef = findColumnDefIf( 
+				[&pkPropName]( const QEOrmColumnDef& colDef)
+				{ return pkPropName == colDef.propertyName(); });
+		pk.push_back( colDef);
+		colDef.setPartOfPrimaryKey( true);
 	}
 	
 	return pk;
 }
 
-void QEOrmModelPrivate::parseAnnotations( const QEAnnotationModel *model, 
+void QEOrmModelPrivate::parseAnnotations( const QEAnnotationModel &model, 
 										  const QMetaObject* metaObj)
 {
 	// Table
-	table = model->annotation( ANN_CLASS_ID(), ANN_TABLE_KEY())
+	m_table = model.annotation( ANN_CLASS_ID(), ANN_TABLE_KEY())
 		.value( QString( metaObj->className())).toString();
 	// Columns			
-	const bool exportParents = model->annotation( ANN_CLASS_ID(), ANN_EXPORT_PARENT_KEY())
+	const bool exportParents = model.annotation( ANN_CLASS_ID(), ANN_EXPORT_PARENT_KEY())
 		.value( false).toBool();
 	const int begin = (exportParents) ? 0 : metaObj->propertyOffset();
 	for( int i = begin; i < metaObj->propertyCount(); ++i)
 	{
 		QMetaProperty property = metaObj->property(i);
 		const QByteArray propertyName = property.name();
-		const bool isEnable = model->annotation( propertyName, ANN_ENABLE())
+		const bool isEnable = model.annotation( propertyName, ANN_ENABLE())
 			.value( true).toBool();
 		if( isEnable )
 		{
 			QEOrmColumnDef colDef( propertyName, property.type(), model);
-			
-			columnsByName.insert(
-				make_pair( colDef.dbColumnName(), colDef));
-			columnsByProperty.insert(
-				make_pair( colDef.propertyName(), colDef));
+			m_columns.push_back( colDef);
 		}
 	}
 	
 	// Primary keys and no pk
-	primaryKey = parseAnnotationsGetPrimaryKeys( model);
-	noPrimaryKey = generateNoPrimaryKey();
+	m_primaryKey = parseAnnotationsGetPrimaryKeys( model);
+	// noPrimaryKey = generateNoPrimaryKey();
 }
 
+
+QEOrmColumnDef QEOrmModelPrivate::findColumnDefIf( const std::function<bool(const QEOrmColumnDef&)> predicate) const
+{
+	QEOrmColumnDef column;
+	const auto itr = find_if( begin( m_columns), end( m_columns), predicate);
+	if( itr != end( m_columns))
+		column = *itr;
+
+	return column;
+}
+
+
+#if 0
 vector< QEOrmColumnDef > QEOrmModelPrivate::generateNoPrimaryKey() const
 {
 	vector< QEOrmColumnDef> noPk;
@@ -113,4 +126,31 @@ vector< QEOrmColumnDef > QEOrmModelPrivate::generateNoPrimaryKey() const
 	}
 	return noPk;
 }
+#endif
 
+QString QEOrmModelPrivate::table() const noexcept
+{ return m_table;}
+
+const vector<QEOrmColumnDef>& QEOrmModelPrivate::columns() const noexcept
+{ return m_columns;}
+
+const vector<QEOrmColumnDef>& QEOrmModelPrivate::primaryKey() const noexcept
+{ return m_primaryKey;}
+
+const vector<QEOrmForeignDef>& QEOrmModelPrivate::referencesToOne() const noexcept
+{ return m_referencesToOne;}
+
+void QEOrmModelPrivate::addReferencesToOne( const QEOrmForeignDef& fkDef)
+{
+	// Add columns 
+	for( QEOrmColumnDef fkColDef : fkDef.foreignKeys())
+	{
+		fkColDef.setDbAutoIncrement( false);
+		fkColDef.setPartOfPrimaryKey( false);
+		fkColDef.setDbUnique( false);
+		m_columns.push_back( fkColDef);
+	}
+
+	// Copy ref
+	m_referencesToOne.push_back( fkDef);
+}

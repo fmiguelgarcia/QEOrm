@@ -21,7 +21,7 @@
 class SQLGenerator
 {
 	public:
-		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
+		virtual QStringList createTablesIfNotExist( const QEOrmModel&  model) const;
 		
 		virtual QString generateExistsObjectOnDBStmt( const QObject* o, const QEOrmModel& model) const;
 		virtual QString generateInsertObjectStmt( const QObject *o, const QEOrmModel &model) const;
@@ -29,8 +29,12 @@ class SQLGenerator
 		virtual QString generateLoadObjectFromDBStmt( const QVariantList& pk, const QEOrmModel &model) const;
 
 	protected:
-		virtual QString generateColumnDefinition( const QEOrmModel& model, const QString& column) const;
+		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
+		
+		virtual QString generateColumnDefinition( const QEOrmModel& model, const QEOrmColumnDef column) const;
 		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;
+		virtual QString generateForeignKeyDefinition( const QEOrmModel& model) const;
+
 		virtual QString generateWhereClause(const QObject *o, const QEOrmModel& model) const;
 		virtual QString generateWhereClause( const QVariantList& pk, const QEOrmModel &model) const;
 		

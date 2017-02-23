@@ -29,7 +29,7 @@ QEOrmColumnDef::QEOrmColumnDef( const QEOrmColumnDef &other) noexcept
 	: d_ptr( other.d_ptr)
 {}
 
-QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel *model)
+QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel &model)
 	: d_ptr( new QEOrmColumnDefPrivate( property, type, model))
 {}
 
@@ -46,6 +46,9 @@ int QEOrmColumnDef::propertyType() const noexcept
 
 QString QEOrmColumnDef::dbColumnName() const noexcept
 { return d_ptr->dbColumnName; }
+		
+void QEOrmColumnDef::setDbColumnName( const QString& name)
+{ d_ptr->dbColumnName = name; }
 
 QVariant QEOrmColumnDef::dbDefaultValue() const noexcept
 { return d_ptr->dbDefaultValue; }
@@ -56,8 +59,30 @@ uint QEOrmColumnDef::dbMaxLength() const noexcept
 bool QEOrmColumnDef::isDbAutoIncrement() const noexcept
 { return d_ptr->isDbAutoIncrement; }
 
+void QEOrmColumnDef::setDbAutoIncrement( const bool v) noexcept
+{ d_ptr->isDbAutoIncrement = v;}
+
 bool QEOrmColumnDef::isDbNullable() const noexcept
 { return d_ptr->isDbNullable; }
 
 bool QEOrmColumnDef::isDbUnique() const noexcept
 { return d_ptr->isDbUnique; }
+
+void QEOrmColumnDef::setDbUnique( const bool v) noexcept
+{ d_ptr->isDbUnique = v;}
+
+bool QEOrmColumnDef::isPartOfPrimaryKey() const noexcept
+{ return d_ptr->isPartOfPrimaryKey; }
+
+void QEOrmColumnDef::setPartOfPrimaryKey( const bool v) noexcept
+{ d_ptr->isPartOfPrimaryKey = v; }
+
+
+QEOrmColumnDefPrivate::MappingType QEOrmColumnDef::mappingType() const noexcept
+{ return d_ptr->mappingType; }
+
+QEOrmColumnDef::MappingFetch QEOrmColumnDef::mappingFetch() const noexcept
+{ return d_ptr->mappingFetch; }
+
+const QMetaObject *QEOrmColumnDef::mappingEntity() const noexcept
+{ return d_ptr->mappingEntity; }

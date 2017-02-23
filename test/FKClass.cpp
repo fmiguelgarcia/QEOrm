@@ -14,15 +14,27 @@
  * information use the contact form at http://www.dmious.com/contact-us.
  */
 
-#pragma once
+#include "FKClass.hpp"
 
-#include <DBDriver/SQLGenerator.hpp>
+namespace {
+    const static int FKClassTypeId = qRegisterMetaType<FKClass*>();
+}
 
-class SQliteGenerator : public SQLGenerator
+FKClass::FKClass( QObject* parent)
+	: QObject(parent)
+{}
+		
+FKClass::FKClass( const FKClass& other) noexcept
+	: QObject( nullptr),
+	id( other.id),
+	value( other.value),
+	description( other.description)
+{}
+
+FKClass& FKClass::operator=( const FKClass& other) noexcept
 {
-	protected:
-		virtual QString autoIncrementKeyWord() const override;
-		virtual QString generateColumnDefinition( const QEOrmModel& model,
-												  const QEOrmColumnDef column) const override;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
-};
+	id = other.id;
+	value = other.value;
+	description = other.description;
+	return *this;
+}

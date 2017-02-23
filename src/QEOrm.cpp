@@ -88,6 +88,12 @@ namespace {
 		}
 		return sqlQuery;
 	}
+	
+	void executeSQLOrThrow( const QStringList& stmtList, const QString& errorMsg)
+	{
+		for( const QString& stmt: stmtList)
+			executeSQLOrThrow( stmt, errorMsg);
+	}
 }
 
 std::unique_ptr<QEOrm> QEOrm::m_instance;
@@ -143,7 +149,7 @@ void QEOrm::load(const QVariantList pk, QObject *target) const
 	for( int i = 0; i < record.count(); ++i)
 	{
 		const QSqlField field = record.field( i);
-		const QEOrmColumnDef colDef = model.columnByName( field.name());
+		const QEOrmColumnDef colDef = model.findColumnByName( field.name());
 		const QString valueStr = field.value().toString();
 		target->setProperty( colDef.propertyName().constData(), 
 							 field.value());
@@ -155,8 +161,8 @@ void QEOrm::checkAndCreateDBTable( const QEOrmModel& model) const
 	const bool isAlreadyChecked = existsOrCreateUsingDoubleCheckeLocking( m_cachedCheckedTables, model.table(), m_cachedCheckedTablesMtx);
 	if( !isAlreadyChecked)
 	{
-		const QString sqlCommand =  m_sqlGenerator->createTableIfNotExist( model); 
-		executeSQLOrThrow( sqlCommand, QString("QEOrm cannot create table '%1' due to error %2: %3")
+		const QStringList sqlCommands =  m_sqlGenerator->createTablesIfNotExist( model); 
+		executeSQLOrThrow( sqlCommands, QString("QEOrm cannot create table '%1' due to error %2: %3")
 				.arg( model.table()));
 	}
 }
@@ -178,7 +184,7 @@ void QEOrm::insertObjectOnDB(QObject *source, const QEOrmModel &model) const
 	QVariant insertId = query.lastInsertId();
 	if( ! insertId.isNull())
 	{
-		QEOrmColumnDef colDef = model.autoIncrementColumnName();
+		const QEOrmColumnDef colDef = model.findAutoIncrementColumn();
 		if( colDef.isValid())
 			source->setProperty( colDef.propertyName().constData(), insertId);
 	}

@@ -13,29 +13,33 @@
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
  */
-
 #pragma once
 #include "QEOrmModelPrivate.hpp"
+#include "QEOrmForeignDef.hpp"
 #include <QEAnnotation/QEAnnotation.hpp>
-#include <QEOrmColumnDef.hpp>
 
 QE_BEGIN_NAMESPACE
+
 class QEOrmModel : public QEAnnotationModel
 {
 	public:
 		explicit QEOrmModel( const QMetaObject* meta);
 		QEOrmModel( const QEOrmModel& ) noexcept;
 		QEOrmModel& operator=( const QEOrmModel& ) noexcept;
-	
-		// Table
+
+		/// @brief Add reference Many (this model) to one @p reference
+		void addRefToOne(const QEOrmModel& reference);
+
+		// DB 	
 		QString table() const noexcept;
+		std::vector<QEOrmColumnDef> columns() const noexcept;
 		std::vector<QEOrmColumnDef> primaryKey() const noexcept;
-		std::vector<QEOrmColumnDef> noPrimaryKey() const noexcept;
-		
-		QEOrmColumnDef columnByProperty( const QString & property) const noexcept;
-		QEOrmColumnDef columnByName( const QString & columnName) const noexcept;
-		QStringList columnNames() const;
-		QEOrmColumnDef autoIncrementColumnName() const;
+		std::vector<QEOrmForeignDef> referencesToOne() const noexcept;
+	
+		// Find utils	
+		QEOrmColumnDef findColumnByProperty( const QString & property) const noexcept;
+		QEOrmColumnDef findColumnByName( const QString & columnName) const noexcept;
+		QEOrmColumnDef findAutoIncrementColumn() const noexcept;
 		
 	private:
 		void parseAnnotations( const QMetaObject* meta);
@@ -44,6 +48,6 @@ class QEOrmModel : public QEAnnotationModel
 	private:
 		QSharedDataPointer<QEOrmModelPrivate> d_ptr;
 };
-Q_DECLARE_TYPEINFO( QEOrmModel, Q_MOVABLE_TYPE);
 
+Q_DECLARE_TYPEINFO( QEOrmModel, Q_MOVABLE_TYPE);
 QE_END_NAMESPACE

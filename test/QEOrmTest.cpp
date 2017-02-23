@@ -53,8 +53,33 @@ void QEOrmTest::checkTableCreation()
 	obj1.m_id = 1;
 	obj1.m_user = "Miguel";
 	obj1.m_begin = QDateTime::currentDateTime();
-	obj1.m_end = obj1.m_begin.addSecs(660);
-	
+    obj1.m_end = obj1.m_begin.addSecs(660);
+
+#if 0
+    FKClass x;
+    const QMetaObject *xMo = x.metaObject();
+    QByteArray className = xMo->className();
+    int fkClassId = QMetaType::type( className);
+    QMetaType fkClassMT( fkClassId);
+    const QMetaObject* fkClassMO = fkClassMT.metaObject();
+
+    /*char* rawAllocatedSpace = new char[ fkClassMT.sizeOf()];
+    QObject * obj = reinterpret_cast<QObject*>(fkClassMT.construct( rawAllocatedSpace));
+    const QMetaObject* mo = obj->metaObject();*/
+
+    className = QMetaObject::normalizedType( QString("%1 *").arg(xMo->className()).toLocal8Bit().constData());
+    fkClassId = QMetaType::type( className);
+    QMetaType fkClassPtrMT( fkClassId);
+    const QMetaObject* fkClassPtrMO = fkClassPtrMT.metaObject();
+
+    QSharedPointer<FKClass> spx( new FKClass());
+    const QMetaObject *spxMo = spx->metaObject();
+    QByteArray spxClassName = spxMo->className();
+    int spxType = QMetaType::type( spxClassName);
+    QMetaType spxMT( spxType);
+    const QMetaObject* spxMTMO = spxMT.metaObject();
+#endif
+
 	QEOrm::instance().save( &obj1);
 	QEOrm::instance().load( {1}, &obj2);
 	

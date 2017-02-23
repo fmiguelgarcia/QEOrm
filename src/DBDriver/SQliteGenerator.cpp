@@ -16,19 +16,15 @@
 
 #include "SQliteGenerator.hpp"
 
-QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const QString &column) const
+QString SQliteGenerator::generateColumnDefinition(const QEOrmModel &model, const QEOrmColumnDef column) const
 {
 	QString sqlColumnDef;
-	const QEOrmColumnDef columnDef = model.columnByName( column);
-	if( columnDef.isValid())
-	{
-		if( !columnDef.isDbAutoIncrement())
+	if( !column.isDbAutoIncrement())
 			sqlColumnDef = SQLGenerator::generateColumnDefinition(model, column);
-		else
-			sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY AUTOINCREMENT")
-				.arg( column);
-	}
-				
+	else
+		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY AUTOINCREMENT")
+			.arg( column.dbColumnName());
+
 	return sqlColumnDef;
 }
 
@@ -37,7 +33,7 @@ QString SQliteGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) c
 {
 	QString sqlStmt;
 	
-	const QEOrmColumnDef autoIncrementDef = model.autoIncrementColumnName();
+	const QEOrmColumnDef autoIncrementDef = model.findAutoIncrementColumn();
 	if( ! autoIncrementDef.isValid()) 
 		sqlStmt = SQLGenerator::generatePrimaryKeyDefinition(model);
 	

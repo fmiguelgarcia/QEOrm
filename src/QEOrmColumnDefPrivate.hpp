@@ -16,19 +16,31 @@
 #pragma once
 
 #include <QECommon/QEGlobal.hpp>
+#include <QObject>
 #include <QSharedData>
 #include <QString>
 #include <QVariant>
 
 QE_BEGIN_NAMESPACE 
 
+class QMetaObject;
 class QEAnnotationModel;
 class QEOrmColumnDefPrivate : public QSharedData
 {
+	Q_GADGET
+	public:
+		enum MappingType { NoMappingType, OneToOne, OneToMany, ManyToOne, ManyToMany };
+		Q_ENUM( MappingType );
+		enum MappingFetch { Direct, Lazy };
+		Q_ENUM( MappingFetch );
+	
 	public:
 		QEOrmColumnDefPrivate();
-		QEOrmColumnDefPrivate( const QByteArray &property, const int type, const QEAnnotationModel *model);
+		QEOrmColumnDefPrivate( const QByteArray &property, const int type, const QEAnnotationModel &model);
 		QEOrmColumnDefPrivate( const QEOrmColumnDefPrivate& other);
+		
+	private:
+		void decodeMapping( const QEAnnotationModel &model);
 
 	public:
 		QByteArray propertyName;
@@ -36,10 +48,16 @@ class QEOrmColumnDefPrivate : public QSharedData
 		
 		QString dbColumnName;
 		QVariant dbDefaultValue;
-		uint dbMaxLength 		= 0;
+	
+		MappingType mappingType = MappingType::NoMappingType;
+		MappingFetch mappingFetch = MappingFetch::Direct;
+		const QMetaObject* mappingEntity = nullptr;
+		
+		uint dbMaxLength 			= 0;
 		bool isDbAutoIncrement 	= false;
 		bool isDbNullable 		= true;
-		bool isDbUnique 		= false;
+		bool isDbUnique 			= false;
+		bool isPartOfPrimaryKey	= false;
 };
 
 QE_END_NAMESPACE

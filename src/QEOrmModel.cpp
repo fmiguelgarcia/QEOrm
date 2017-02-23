@@ -22,10 +22,13 @@
 
 using namespace std;
 
+namespace {
+}
+
 QEOrmModel::QEOrmModel( const QMetaObject* metaObj)
-	: QEAnnotationModel( metaObj), d_ptr( new QEOrmModelPrivate)
-{ 
-	d_ptr->parseAnnotations( this, metaObj);
+	: QEAnnotationModel( metaObj) 
+{
+  	d_ptr = new QEOrmModelPrivate( *this, metaObj);
 }
 
 QEOrmModel::QEOrmModel(const QEOrmModel &model) noexcept
@@ -39,34 +42,27 @@ QEOrmModel &QEOrmModel::operator=(const QEOrmModel & model) noexcept
 	return *this;
 }
 
-
 QString QEOrmModel::table() const noexcept
-{ return d_ptr->table; }
+{ return d_ptr->table(); }
 
 vector<QEOrmColumnDef> QEOrmModel::primaryKey() const noexcept
-{ return d_ptr->primaryKey; }
+{ return d_ptr->primaryKey(); }
 
-vector< QEOrmColumnDef > QEOrmModel::noPrimaryKey() const noexcept
-{ return d_ptr->noPrimaryKey; }
-
-QEOrmColumnDef QEOrmModel::columnByProperty(const QString &property) const noexcept
+QEOrmColumnDef QEOrmModel::findColumnByProperty(const QString &property) const noexcept
 {
-	const auto itr = d_ptr->columnsByProperty.find( property);
-	if( itr != end(d_ptr->columnsByProperty))
-		return itr->second;
-	
-	return QEOrmColumnDef();
+	return d_ptr->findColumnDefIf( 
+			[&property]( const QEOrmColumnDef& colDef)
+				{ return colDef.propertyName() == property;});
 }
 
-QEOrmColumnDef QEOrmModel::columnByName(const QString &columnName) const noexcept
+QEOrmColumnDef QEOrmModel::findColumnByName(const QString &columnName) const noexcept
 {
-	const auto itr = d_ptr->columnsByName.find( columnName);
-	if( itr != end( d_ptr->columnsByName))
-		return itr->second;
-	
-	return QEOrmColumnDef();
+	return d_ptr->findColumnDefIf( 
+			[&columnName]( const QEOrmColumnDef& colDef)
+				{ return colDef.dbColumnName() == columnName;});
 }
 
+#if 0
 QStringList QEOrmModel::columnNames() const
 {
 	QStringList columnNames;
@@ -79,20 +75,44 @@ QStringList QEOrmModel::columnNames() const
 
 	return columnNames;
 }
+#endif
 
-QEOrmColumnDef QEOrmModel::autoIncrementColumnName() const
+QEOrmColumnDef QEOrmModel::findAutoIncrementColumn() const noexcept
 {
-	QEOrmColumnDef col;
-	const auto itr = find_if( 
-		begin(d_ptr->columnsByProperty), 
-		end(d_ptr->columnsByProperty),
-		[]( const QEOrmModelPrivate::ColumnDefBy::value_type& item)
-			{ return item.second.isDbAutoIncrement();});
-	
-	if( itr != end( d_ptr->columnsByProperty))
-		col = itr->second;
-
-	return col;
+	return d_ptr->findColumnDefIf( 
+			[]( const QEOrmColumnDef& colDef)
+				{ return colDef.isDbAutoIncrement();});
 }
 
+vector< QEOrmColumnDef > QEOrmModel::columns() const noexcept
+{ return d_ptr->columns(); }
 
+
+#if 0
+QString QEOrmModel::getReferenceName( QString columnName) const
+{
+	QEOrmColumnDef findDef = columnByName( columnName);
+	if( findDef.isValid())
+	{
+		uint id = 0;
+		QString columnNameBase = QString( "%1%2").arg( model.table()).arg( columnName);
+		findDef = columnByName( columnNameBase);
+		while( findDef.isValid())
+		{
+			columnNameBase = QString( "%1%2%3").arg( model.table()).arg( columnName).arg(++id);
+			findDef = columnByName( columnNameBase);
+		}
+		columnName = columnNameBase;
+	}
+	return columnName;
+}
+#endif
+
+void QEOrmModel::addRefToOne( const QEOrmModel &reference)
+{
+	QEOrmForeignDef fk( *this, reference, reference.primaryKey());
+	d_ptr->addReferencesToOne( fk);
+}
+
+vector<QEOrmForeignDef> QEOrmModel::referencesToOne() const noexcept
+{ return d_ptr->referencesToOne(); }

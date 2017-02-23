@@ -13,12 +13,14 @@
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
  */
-
 #pragma once
 
 #include <QSharedData>
 #include <QEOrmColumnDef.hpp>
+#include <QEOrmForeignDef.hpp>
 #include <vector>
+#include <functional>
+#include <map>
 
 QE_BEGIN_NAMESPACE
 
@@ -26,19 +28,29 @@ class QEAnnotationModel;
 class QEOrmModelPrivate : public QSharedData
 {
 	public:
-		using ColumnDefBy = std::map<QString, QEOrmColumnDef>;
-	
-		QEOrmModelPrivate();
+		QEOrmModelPrivate( const QEAnnotationModel& model, const QMetaObject* metaObject);
 		QEOrmModelPrivate(const QEOrmModelPrivate &other);
-		void parseAnnotations( const QEAnnotationModel* model, const QMetaObject* metaObject); 
-		std::vector<QEOrmColumnDef> parseAnnotationsGetPrimaryKeys( const QEAnnotationModel* model) const;
+
+		QString table() const noexcept;
+
+		const std::vector<QEOrmColumnDef>& columns() const noexcept;
+		const std::vector<QEOrmColumnDef>& primaryKey() const noexcept;
+		const std::vector<QEOrmForeignDef>& referencesToOne() const noexcept;
+		void addReferencesToOne( const QEOrmForeignDef& fkDef);
+
+		QEOrmColumnDef findColumnDefIf( const std::function<bool(const QEOrmColumnDef&)> predicate) const;
+
+	private:
+		void parseAnnotations( const QEAnnotationModel& model, const QMetaObject* metaObject); 
+		std::vector<QEOrmColumnDef> parseAnnotationsGetPrimaryKeys( const QEAnnotationModel& model) const;
 		std::vector<QEOrmColumnDef> generateNoPrimaryKey() const;
 
-		QString table;
-		std::vector<QEOrmColumnDef> primaryKey;
-		std::vector<QEOrmColumnDef> noPrimaryKey;
-		ColumnDefBy columnsByProperty;
-		ColumnDefBy columnsByName;
+	private:
+		QString m_table;
+		std::vector<QEOrmColumnDef> m_columns;
+		
+		std::vector<QEOrmColumnDef> m_primaryKey;
+		std::vector<QEOrmForeignDef> m_referencesToOne;
 };
 
 QE_END_NAMESPACE

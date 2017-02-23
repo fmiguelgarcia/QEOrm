@@ -15,6 +15,7 @@
  */
 
 #include "AnnotateClassOne.hpp"
+using namespace std;
 
 AnnotateClassOne::AnnotateClassOne(QObject *parent)
 	: QObject( parent)
@@ -39,3 +40,10 @@ bool AnnotateClassOne::operator==(const AnnotateClassOne &other) const
 		&& m_begin == other.m_begin
 		&& m_end == other.m_end;
 }
+
+vector<FKClass> AnnotateClassOne::fkClass() const
+{ return m_fkClass; }
+
+void AnnotateClassOne::setFkClass( const std::vector<FKClass>& v)
+{ m_fkClass = v; }
+	

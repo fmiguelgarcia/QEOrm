@@ -16,13 +16,26 @@
 
 #pragma once
 
-#include <DBDriver/SQLGenerator.hpp>
+#include <QObject>
 
-class SQliteGenerator : public SQLGenerator
+class FKClass : public QObject
 {
-	protected:
-		virtual QString autoIncrementKeyWord() const override;
-		virtual QString generateColumnDefinition( const QEOrmModel& model,
-												  const QEOrmColumnDef column) const override;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
+	Q_OBJECT
+	Q_PROPERTY( int id MEMBER id)
+	Q_PROPERTY( double value MEMBER value)
+	Q_PROPERTY( QString description MEMBER description)
+	
+	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
+	Q_CLASSINFO( "value", "@QE.ORM.NULL=false")
+
+	public:
+		explicit FKClass( QObject* parent = nullptr);
+		FKClass( const FKClass& other) noexcept;
+		FKClass& operator= ( const FKClass& other) noexcept;
+	
+	public:
+		int id;
+		double value;
+		QString description;
 };
+Q_DECLARE_METATYPE( FKClass*);

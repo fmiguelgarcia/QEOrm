@@ -16,6 +16,7 @@
 
 #pragma once
 #include <QEOrmColumnDefPrivate.hpp>
+#include <QSharedDataPointer>
 #include <QECommon/QEGlobal.hpp>
 #include <QMetaType>
 #include <QString>
@@ -23,26 +24,47 @@
 
 QE_BEGIN_NAMESPACE 
 
+class QEOrmModel;
 class QEAnnotationModel;
 class QEOrmColumnDef
 {
+	friend class QEOrmModel;
+	public:
+		using MappingType = typename QEOrmColumnDefPrivate::MappingType;
+		using MappingFetch = typename QEOrmColumnDefPrivate::MappingFetch;
+	
 	public:
 		QEOrmColumnDef();
-		QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel *model);
+		QEOrmColumnDef( 
+			const QByteArray &property, 
+			const int type, 
+			const QEAnnotationModel &model);
 		QEOrmColumnDef( const QEOrmColumnDef &other) noexcept;
 
 		bool isValid() const noexcept;
 
+		// Property
 		QByteArray propertyName() const noexcept;
 		int propertyType() const noexcept;
-		
+	
+		// DB	
 		QString dbColumnName() const noexcept;
+		void setDbColumnName( const QString& name);
 		QVariant dbDefaultValue() const noexcept;
 		uint dbMaxLength() const noexcept;
 		bool isDbAutoIncrement() const noexcept;
+		void setDbAutoIncrement( const bool v) noexcept;
 		bool isDbNullable() const noexcept;
 		bool isDbUnique() const noexcept;
-		
+		void setDbUnique( const bool v) noexcept;
+		bool isPartOfPrimaryKey() const noexcept;
+		void setPartOfPrimaryKey( const bool v) noexcept;
+	
+		//	
+		MappingType mappingType() const noexcept;
+		MappingFetch mappingFetch() const noexcept;
+		const QMetaObject* mappingEntity() const noexcept;
+
 	private:
 		QSharedDataPointer<QEOrmColumnDefPrivate> d_ptr;
 };
