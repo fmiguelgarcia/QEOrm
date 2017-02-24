@@ -33,22 +33,21 @@ class QEOrmModel;
 class QEOrmForeignDef
 {
 	public:
+		using QEOrmColumnDefList = std::vector<QEOrmColumnDefShd>;
+
 		QEOrmForeignDef(
-			QEOrmModel& targetModel,
 			const QByteArray& propertyName,
-			const QEOrmModel& reference, 
-			const std::vector<QEOrmColumnDef>& primaryKeys);
+			const std::shared_ptr<QEOrmModel>& reference );
 
 		const QByteArray& propertyName() const noexcept;
-		const std::vector<QEOrmColumnDef>& foreignKeys() const noexcept;
-		const std::vector<QEOrmColumnDef>& referenceKeys() const noexcept;
+		const QEOrmColumnDefList& foreignKeys() const noexcept;
 
-		QEOrmModel reference() const;
+		std::shared_ptr<QEOrmModel> reference() const noexcept;
 
 	private:
 		const QByteArray m_propertyName;
-		const QEOrmModel& m_reference;
-		std::vector<QEOrmColumnDef> m_refPrimaryKey;
-		std::vector<QEOrmColumnDef> m_foreignKey;
+		std::shared_ptr<QEOrmModel> m_reference;
+		QEOrmColumnDefList m_foreignKey;
 };
+using QEOrmForeignDefShd = std::shared_ptr<QEOrmForeignDef>;
 QE_END_NAMESPACE

@@ -26,14 +26,14 @@
 
 #include "SQliteGenerator.hpp"
 
-QString SQliteGenerator::generateColumnDefinition( const QEOrmColumnDef column) const
+QString SQliteGenerator::generateColumnDefinition( const QEOrmColumnDef& column) const
 {
 	QString sqlColumnDef;
-	if( !column.isDbAutoIncrement())
+	if( !column.isDbAutoIncrement)
 			sqlColumnDef = SQLGenerator::generateColumnDefinition( column);
 	else
 		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY %2 ")
-			.arg( column.dbColumnName())
+			.arg( column.dbColumnName)
 			.arg( autoIncrementKeyWord());
 
 	return sqlColumnDef;
@@ -44,8 +44,8 @@ QString SQliteGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) c
 {
 	QString sqlStmt;
 	
-	const QEOrmColumnDef autoIncrementDef = model.findAutoIncrementColumn();
-	if( ! autoIncrementDef.isValid()) 
+	const auto autoIncrementDef = model.findColumnDef( QEOrmModel::findByAutoIncrement{});
+	if( ! autoIncrementDef) 
 		sqlStmt = SQLGenerator::generatePrimaryKeyDefinition(model);
 	
 	return sqlStmt;

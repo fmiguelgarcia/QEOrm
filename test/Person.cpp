@@ -14,33 +14,25 @@
  * information use the contact form at http://www.dmious.com/contact-us.
  */
 
-#include "FKClass.hpp"
+#include "Person.hpp"
+using namespace std;
 
-namespace {
-    const static int FKClassTypeId = qRegisterMetaType<FKClass*>();
-}
-
-FKClass::FKClass( QObject* parent)
-	: QObject(parent)
-{}
-		
-FKClass::FKClass( const FKClass& other) noexcept
-	: QObject( nullptr),
-	id( other.id),
-	value( other.value),
-	description( other.description)
+Person::Person(QObject *parent)
+	: QObject( parent)
 {}
 
-FKClass& FKClass::operator=( const FKClass& other) noexcept
+bool Person::operator ==(const Person &other) const
 {
-	id = other.id;
-	value = other.value;
-	description = other.description;
-	return *this;
+	return id == other.id
+		&& name == other.name
+		&& begin == other.begin
+		&& end == other.end
+		&& m_contactInfoList == other.m_contactInfoList;
 }
-		
-bool FKClass::operator==( const FKClass& other) const noexcept
-{
-	return value == other.value && 
-		description == other.description;
-}
+
+
+vector<ContactInfo> Person::contactInfoList() const
+{ return m_contactInfoList;}
+
+void Person::setContactInfoList( const std::vector<ContactInfo>& list )
+{ m_contactInfoList = list; }

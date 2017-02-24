@@ -8,7 +8,7 @@ set( CMAKE_AUTOMOC ON)
 set( CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set( QEOrmTest_SRCS
-        AnnotateClassOne.cpp FKClass.cpp
+        Person.cpp ContactInfo.cpp
 	QEOrmTest.cpp)
 include_directories( ${PROJECT_SOURCE_DIR}/src )
 

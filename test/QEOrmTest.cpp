@@ -24,7 +24,7 @@
  * $QE_END_LICENSE$
  */
 #include "QEOrmTest.hpp"
-#include "AnnotateClassOne.hpp"
+#include "Person.hpp"
 #include <QEOrm.hpp>
 #include <QSqlDatabase>
 #include <QtTest>
@@ -59,31 +59,22 @@ void QEOrmTest::cleanup()
 
 void QEOrmTest::checkTableCreation()
 {
-	AnnotateClassOne obj1, obj2;
-	obj1.m_id = 0;
-	obj1.m_user = "Miguel";
-	obj1.m_begin = QDateTime::currentDateTime();
-	obj1.m_end = obj1.m_begin.addSecs(660);
+	Person p1, p2;
+	p1.name = "Miguel";
+	p1.begin = QDateTime::currentDateTime();
 
-	FKClass fk1,fk2;
-	fk1.value = 3.14;
-	fk1.description = QLatin1Literal( "This is PI");
-	fk2.value = 2.71828;
-	fk2.description = QLatin1Literal( "This is e");
-	vector< FKClass > fkList = { fk1, fk2};
-#if 0
-	QVariantList fkVarList = { QVariant::fromValue(fk1), QVariant::fromValue(fk2) };
+	ContactInfo ci1, ci2;
+	ci1.email = "info@dmious.com";
+	ci1.phone = "091";
+	ci2.email = "google@google.com";
+	ci2.phone = "555";
 
-	obj1.setProperty( "fkClass", fkVarList);
-	QVERIFY( fkList == obj1.fkClass());
-#else
-	obj1.setFkClass( {fk1,fk2});
+	p1.setContactInfoList( {ci1, ci2});
 
-	QEOrm::instance().save( &obj1);
-	QEOrm::instance().load( { obj1.m_id}, &obj2);
+	QEOrm::instance().save( &p1);
+	QEOrm::instance().load( { p1.id}, &p2);
 	
-	QVERIFY( obj1 == obj2);
-#endif
+	QVERIFY( p1 == p2);
 }
 
 

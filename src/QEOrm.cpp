@@ -153,36 +153,35 @@ namespace {
 	{
 		QSqlQuery query;
 		query.prepare( stmt);
-		for( const QEOrmColumnDef& colDef: model.columns())
+		for( const auto& colDef: model.columnDefs())
 		{
-			if( colDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
+			if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
 			{
-				QVariant value = object->property( colDef.propertyName());
-				if( colDef.isDbAutoIncrement() && value.toInt() == 0)
+				QVariant value = object->property( colDef->propertyName);
+				if( colDef->isDbAutoIncrement && value.toInt() == 0)
 					value = QVariant();
-				query.bindValue( QString(":%1").arg( colDef.dbColumnName()), value);
+				query.bindValue( QString(":%1").arg( colDef->dbColumnName), value);
 			}
 		}
 
 		if( !context.empty())
 		{
 			QObject *contextTopObject = context.top();
-			for( const QEOrmForeignDef& fkDef : model.referencesToOne())
+			for( const auto& fkDef : model.referencesManyToOneDefs())
 			{
-				const vector<QEOrmColumnDef>& foreignKeys = fkDef.foreignKeys();
-				const vector<QEOrmColumnDef>& refKeys = fkDef.referenceKeys();
+				const auto& foreignKeys = fkDef->foreignKeys();
+				const auto& refKeys = fkDef->reference()->primaryKeyDef();
 				for( uint i = 0; i < foreignKeys.size(); ++i) 
 				{
 					const QVariant value = contextTopObject->property( 
-							refKeys[i].propertyName()); 
+							refKeys[i]->propertyName); 
 
 					query.bindValue( 
-						QString( ":%1").arg( foreignKeys[i].dbColumnName()),
+						QString( ":%1").arg( foreignKeys[i]->dbColumnName),
 						value);
 				}
 			}
 		}
-	
 	
 		return executeSqlOrThrow( query, errorMsg);
 	}
@@ -226,43 +225,42 @@ QEOrm::QEOrm()
 	m_sqlGenerator.reset( getSQLGeneratorForDefaultDB());
 }
 
-QEOrmModel QEOrm::getModel( const QMetaObject* metaObject) const
+QEOrmModelShd QEOrm::getModel( const QMetaObject* metaObject) const
 {
-	
 	return findOrCreateUsingDoubleCheckLocking( 
 		m_cachedModels, 
 		metaObject, 
 		m_cachedModelsMtx, 
-		[metaObject](){ return QEOrmModel(metaObject);});
+		[metaObject](){ return make_shared<QEOrmModel>(metaObject);});
 }
 
 void QEOrm::save(QObject *const source, stack<QObject*> context) const
 {
-
 	const QMetaObject *mo = source->metaObject();
-	QEOrmModel model = getModel(mo);
-	
-	checkAndCreateDBTable( model);
-	if( existsObjectOnDB( source, model))
-		updateObjectOnDB( source, context, model);
-	else
-		insertObjectOnDB( source, context, model);
+	QEOrmModelShd model = getModel(mo);
 
-	saveOneToMany( source, context, model);
+	if( model )
+	{
+		checkAndCreateDBTable( model);
+		if( existsObjectOnDB( source, *model))
+			updateObjectOnDB( source, context, *model);
+		else
+			insertObjectOnDB( source, context, *model);
+
+		saveOneToMany( source, context, model);
+	}
 }
 
 
 void QEOrm::saveOneToMany(QObject *const source, 
-		stack<QObject*>& context, const QEOrmModel& model) const
+		stack<QObject*>& context, const QEOrmModelShd& model) const
 {
 	ScopeStackedContext _( source, context);
-	for( const QEOrmColumnDef& colDef : model.columns())
+	for( const auto& colDef : model->columnDefs())
 	{
-		if( colDef.mappingType() == QEOrmColumnDef::MappingType::OneToMany)
+		if( colDef->mappingType == QEOrmColumnDef::MappingType::OneToMany)
 		{
-			// const QMetaObject* refMetaObject = colDef.mappingEntity();
-			// const QEOrmModel refModel = getModel( refMetaObject);
-			const QByteArray& propertyName = colDef.propertyName();
+			const QByteArray& propertyName = colDef->propertyName;
 			const QVariant propertyValue = source->property( propertyName);
 			if( ! propertyValue.canConvert<QVariantList>())
 				throw runtime_error( 
@@ -284,11 +282,13 @@ void QEOrm::saveOneToMany(QObject *const source,
 void QEOrm::load(const QVariantList pk, QObject *target) const
 {
 	const QMetaObject *mo = target->metaObject();
-	QEOrmModel model = getModel(mo);
-	
+	QEOrmModelShd model = getModel(mo);
+	if( !model)
+		return;
+
 	QSqlQuery query = executeSqlOrThrow(
 		pk,
-		m_sqlGenerator->generateLoadObjectFromDBStmt( pk, model),
+		m_sqlGenerator->generateLoadObjectFromDBStmt( pk, *model),
 		QString( "QEOrm cannot load object from database %1: %2"));
 	
 	if( !query.next())
@@ -298,36 +298,50 @@ void QEOrm::load(const QVariantList pk, QObject *target) const
 	for( int i = 0; i < record.count(); ++i)
 	{
 		const QSqlField field = record.field( i);
-		const QEOrmColumnDef colDef = model.findColumnByName( field.name());
-		const QString valueStr = field.value().toString();
-		target->setProperty( colDef.propertyName().constData(), 
+		const auto colDef = model->findColumnDef( 
+				QEOrmModel::findByColumnName{ field.name()});
+		if( colDef )
+		{
+			target->setProperty( colDef->propertyName.constData(), 
 							 field.value());
+		}
 	}
+
+	/// @todo Load one to many
+//	loadOneToMany( target, context, model);
 }
 
-void QEOrm::checkAndCreateDBTable( const QEOrmModel& model) const
+void QEOrm::checkAndCreateDBTable( const QEOrmModelShd& model) const
 {
-	const bool isAlreadyChecked = existsOrCreateUsingDoubleCheckeLocking( m_cachedCheckedTables, model.table(), m_cachedCheckedTablesMtx);
+	const bool isAlreadyChecked = existsOrCreateUsingDoubleCheckeLocking( 
+			m_cachedCheckedTables, model->table(), m_cachedCheckedTablesMtx);
 	if( !isAlreadyChecked)
 	{
-		const QStringList sqlCommands =  m_sqlGenerator->createTablesIfNotExist( model); 
+		const auto tableStmtList =  m_sqlGenerator->createTablesIfNotExist( model); 
+	
+		QStringList sqlCommands;
+		for( const auto& ts : tableStmtList)
+		{
+			sqlCommands << ts.sqlStatement;
+			existsOrCreateUsingDoubleCheckeLocking( m_cachedCheckedTables, ts.tableName, m_cachedCheckedTablesMtx);
+		}
+		
 		executeSqlOrThrow( sqlCommands, QString("QEOrm cannot create table '%1' due to error %2: %3")
-				.arg( model.table()));
+				.arg( model->table()));
 	}
 }
 
 bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) const
 {
 	QVariantList pkValues;
-	for( const QEOrmColumnDef& colDef: model.primaryKey())
+	for( const auto& colDef: model.primaryKeyDef())
 	{
-		const QVariant value = source->property( colDef.propertyName());
-		if( colDef.isDbAutoIncrement() && value.toInt() == 0)
+		const QVariant value = source->property( colDef->propertyName);
+		if( colDef->isDbAutoIncrement && value.toInt() == 0)
 			pkValues << QVariant();
 		else
 			pkValues << value;
 	}
-	
 	
 	QSqlQuery query = executeSqlOrThrow( 
 		pkValues,
@@ -348,9 +362,9 @@ void QEOrm::insertObjectOnDB(QObject *source, const stack<QObject*>& context,
 	QVariant insertId = query.lastInsertId();
 	if( ! insertId.isNull())
 	{
-		const QEOrmColumnDef colDef = model.findAutoIncrementColumn();
-		if( colDef.isValid())
-			source->setProperty( colDef.propertyName().constData(), insertId);
+		const auto colDef = model.findColumnDef( QEOrmModel::findByAutoIncrement{});
+		if( colDef)
+			source->setProperty( colDef->propertyName.constData(), insertId);
 	}
 }
 

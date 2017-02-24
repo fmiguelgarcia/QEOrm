@@ -18,27 +18,28 @@
 
 #include <QObject>
 
-class FKClass : public QObject
+class ContactInfo: public QObject
 {
 	Q_OBJECT
 	Q_PROPERTY( int id MEMBER id)
-	Q_PROPERTY( double value MEMBER value)
-	Q_PROPERTY( QString description MEMBER description)
+	Q_PROPERTY( QString email MEMBER email)
+	Q_PROPERTY( QString phone MEMBER phone)
 	
-	Q_CLASSINFO( "id", "@QE.ORM.AUTO_INCREMENT=true")
-	Q_CLASSINFO( "value", "@QE.ORM.NULL=false")
-
+	Q_CLASSINFO( "id", "@QEOrm.isAutoIncrement=true")
+	Q_CLASSINFO( "email", "@QEOrm.maxLenght=512")
+	Q_CLASSINFO( "phone", "@QEOrm.maxLenght=32")
+	
 	public:
-		explicit FKClass( QObject* parent = nullptr);
-		FKClass( const FKClass& other) noexcept;
-		FKClass& operator= ( const FKClass& other) noexcept;
+		explicit ContactInfo( QObject* parent = nullptr);
+		ContactInfo( const ContactInfo& other) noexcept;
+		ContactInfo& operator= ( const ContactInfo& other) noexcept;
 
-		bool operator==( const FKClass& other) const noexcept;
+		bool operator==( const ContactInfo& other) const ;
 	
 	public:
 		int id = 0;
-		double value;
-		QString description;
+		QString email;
+		QString phone;
 };
-Q_DECLARE_METATYPE( FKClass*);
-Q_DECLARE_METATYPE( FKClass);
+Q_DECLARE_METATYPE( ContactInfo*);
+Q_DECLARE_METATYPE( ContactInfo);

@@ -67,6 +67,8 @@ class QEOrm
 	public:
 		static QEOrm& instance();
 
+		QEOrmModelShd getModel( const QMetaObject *metaObject) const;
+
 		void save( QObject *const source, std::stack<QObject*> context 
 				= std::stack<QObject*>()) const;
 		void load( const QVariantList pk, QObject* target) const;
@@ -74,22 +76,21 @@ class QEOrm
 	private:
 		QEOrm();
 		Q_DISABLE_COPY(QEOrm)
-		QEOrmModel getModel( const QMetaObject *metaObject) const;
-		void checkAndCreateDBTable( const QEOrmModel& model) const;
+		void checkAndCreateDBTable( const QEOrmModelShd& model) const;
 		
 		void insertObjectOnDB(QObject *source, 
 				const std::stack<QObject*>& context, const QEOrmModel &model) const;
 		void updateObjectOnDB(const QObject *source, 
 				const std::stack<QObject*>& context, const QEOrmModel& model) const;
 		void saveOneToMany(QObject *source, 
-				std::stack<QObject*>& context, const QEOrmModel& model) const;
+				std::stack<QObject*>& context, const QEOrmModelShd& model) const;
 
 		bool existsObjectOnDB(const QObject *source, const QEOrmModel& model) const;
 		QString generateCreateTableIfNotExists( const QEOrmModel& model) const;
 
 	private:
 		mutable std::mutex m_cachedModelsMtx;
-		mutable std::map<const QMetaObject*, QEOrmModel> m_cachedModels;
+		mutable std::map<const QMetaObject*, QEOrmModelShd> m_cachedModels;
 		mutable std::mutex m_cachedCheckedTablesMtx;
 		mutable QSet<QString> m_cachedCheckedTables;
 		

@@ -25,6 +25,7 @@
  */
 #include "SQLGenerator.hpp"
 #include <QEOrmColumnDef.hpp>
+#include <QEOrm.hpp>
 #include <QTextStream>
 #include <QDateTime>
 #include <algorithm>
@@ -37,8 +38,8 @@ namespace {
 	QStringList columnDbNames( const C& container)
 	{
 		QStringList colDbNames;
-		for( const QEOrmColumnDef& colDef: container)
-			colDbNames << colDef.dbColumnName();
+		for( const auto& colDef: container)
+			colDbNames << colDef->dbColumnName;
 		return colDbNames;	
 	}
 }
@@ -50,10 +51,10 @@ QString SQLGenerator::createTableIfNotExist(const QEOrmModel &model) const
 	QStringList sqlColumnDef;
 
 	// Generate SQL for each column.
-	for( QEOrmColumnDef columnDef: model.columns())
+	for( const auto& colDef: model.columnDefs())
 	{
-		if( columnDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
-			sqlColumnDef << generateColumnDefinition( columnDef);
+		if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
+			sqlColumnDef << generateColumnDefinition( *colDef);
 	}
 
 	QString primaryKeyDef = generatePrimaryKeyDefinition( model);
@@ -68,28 +69,32 @@ QString SQLGenerator::createTableIfNotExist(const QEOrmModel &model) const
 	return sqlCommand;
 }
 
-QStringList SQLGenerator::createTablesIfNotExist(const QEOrmModel &model) const
+SQLGenerator::TableStatementList SQLGenerator::createTablesIfNotExist(const QEOrmModelShd &model) const
 {
-	QStringList sqlCommands;
+	TableStatementList ts;
+	ts.emplace_back<TableStatement>({ 
+		model->table(), 
+		createTableIfNotExist( *model)});
 	
-	sqlCommands << createTableIfNotExist(model);
-	for( QEOrmColumnDef columnDef: model.columns())
+	for( const auto& colDef: model->columnDefs())
 	{
-		if( columnDef.mappingType() != QEOrmColumnDef::MappingType::NoMappingType)
+		if( colDef->mappingType != QEOrmColumnDef::MappingType::NoMappingType)
 		{
-			QEOrmModel mapModel( columnDef.mappingEntity());
-			mapModel.addRefToOne( columnDef.propertyName(), model);
-			sqlCommands << createTablesIfNotExist( mapModel);
+			QEOrmModelShd mapModel = QEOrm::instance().getModel( colDef->mappingEntity);
+			mapModel->addReferenceManyToOne( colDef->propertyName, model);
+			
+			TableStatementList refTS = createTablesIfNotExist( mapModel);
+			copy( begin(refTS), end(refTS), back_inserter(ts));
 		}
 	}
 	
-	return sqlCommands;
+	return ts;
 }
 
 QString SQLGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) const
 {
 	QString pkDef;
-	const vector<QEOrmColumnDef> pk = model.primaryKey();
+	const auto pk = model.primaryKeyDef();
 	if( ! pk.empty())
 	{
 		const QStringList pkColumNames = columnDbNames(pk);
@@ -104,14 +109,14 @@ QString SQLGenerator::generateForeignKeyDefinition( const QEOrmModel& model) con
 	QTextStream os( &fkDef);
 	const QChar comma = QLatin1Char(',');
 
-	for( const QEOrmForeignDef& fkDef : model.referencesToOne())
+	for( const auto& fkDef : model.referencesManyToOneDefs())
 	{
-		const QEOrmModel reference = fkDef.reference();
-		const QStringList fkColNames = columnDbNames( fkDef.foreignKeys());
-		const QStringList refColNames = columnDbNames( fkDef.referenceKeys());
+		const auto reference = fkDef->reference();
+		const QStringList fkColNames = columnDbNames( fkDef->foreignKeys());
+		const QStringList refColNames = columnDbNames( reference->primaryKeyDef());
 
 		os << QLatin1Literal( ", FOREIGN KEY (") << fkColNames.join( comma)  
-			<< QLatin1Literal( ") REFERENCES ") << reference.table() << QLatin1Char('(')
+			<< QLatin1Literal( ") REFERENCES ") << reference->table() << QLatin1Char('(')
 			<< refColNames.join( comma) << QLatin1Char(')')
 			<< QLatin1Literal( " ON DELETE CASCADE")
 			<< QLatin1Literal( " ON UPDATE CASCADE");
@@ -119,7 +124,7 @@ QString SQLGenerator::generateForeignKeyDefinition( const QEOrmModel& model) con
 	return fkDef;
 }
 
-QString SQLGenerator::generateColumnDefinition( const QEOrmColumnDef column) const
+QString SQLGenerator::generateColumnDefinition( const QEOrmColumnDef& column) const
 {
 	QString sqlColumnDef;
 	QTextStream os( &sqlColumnDef);
@@ -128,25 +133,25 @@ QString SQLGenerator::generateColumnDefinition( const QEOrmColumnDef column) con
 	const QLatin1Char space(' ');
 		
 	// Name
-	os << quotationMark << column.dbColumnName() << quotationMark << space;
+	os << quotationMark << column.dbColumnName << quotationMark << space;
 		
 	// type 
 	os << getDBType( 
-		static_cast<QMetaType::Type>( column.propertyType()), 
-						column.dbMaxLength()) << space;
+		static_cast<QMetaType::Type>( column.propertyType), 
+						column.dbMaxLength) << space;
 	
 	// Null
-	if( column.isDbNullable() )
+	if( column.isDbNullable )
 		os << QLatin1Literal( "NULL ");
 	else
 		os << QLatin1Literal( "NOT NULL ");
 		
 	// Default value
-	if( ! column.dbDefaultValue().isNull() )
-		os << QLatin1Literal( "DEFAULT " ) << column.dbDefaultValue().toString() << space;
+	if( ! column.dbDefaultValue.isNull() )
+		os << QLatin1Literal( "DEFAULT " ) << column.dbDefaultValue.toString() << space;
 		
 	// Auto-increment
-	if( column.isDbAutoIncrement())
+	if( column.isDbAutoIncrement)
 		os << autoIncrementKeyWord() << space; 
 	
 	return sqlColumnDef;
@@ -224,12 +229,12 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 QString SQLGenerator::generateWhereClause( const QEOrmModel &model) const 
 {
 	QStringList pkWhereClause;
-	vector<QEOrmColumnDef> pkColumns = model.primaryKey();
+	const auto pkColumns = model.primaryKeyDef();
 
-	for( const QEOrmColumnDef& colDef : pkColumns) 
+	for( const auto& colDef : pkColumns) 
 		pkWhereClause << QString(" %1 == :%2")
-			.arg( colDef.dbColumnName())
-			.arg( colDef.dbColumnName());
+			.arg( colDef->dbColumnName)
+			.arg( colDef->dbColumnName);
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
 }
@@ -265,19 +270,19 @@ QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmMod
 	QStringList values;
 	QStringList columnNames;
 
-	for( const QEOrmColumnDef colDef: model.columns())
+	for( const auto& colDef: model.columnDefs())
 	{
-		if( colDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
+		if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
 		{
-			columnNames << colDef.dbColumnName();
-			values << QString( ":%1").arg( colDef.dbColumnName());
+			columnNames << colDef->dbColumnName;
+			values << QString( ":%1").arg( colDef->dbColumnName);
 		}
 	}
-	for( const QEOrmForeignDef& fkDef : model.referencesToOne())
-		for( const QEOrmColumnDef& fkColDef : fkDef.foreignKeys())
+	for( const auto& fkDef : model.referencesManyToOneDefs())
+		for( const auto& fkColDef : fkDef->foreignKeys())
 		{
-			columnNames << fkColDef.dbColumnName();
-			values << QString( ":%1").arg( fkColDef.dbColumnName());
+			columnNames << fkColDef->dbColumnName;
+			values << QString( ":%1").arg( fkColDef->dbColumnName);
 		}
 	
 	QString stmt;
@@ -294,14 +299,14 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 {
 
 	QStringList setExpList;
-	for( const QEOrmColumnDef& col: model.columns())
+	for( const auto& colDef: model.columnDefs())
 	{
-		if( !col.isPartOfPrimaryKey())
+		if( !colDef->isPartOfPrimaryKey)
 		{
 			// const QVariant value = o->property( col.propertyName().constData());
 			setExpList << QString("%1 = :%2")
-				.arg( col.dbColumnName())
-				.arg( col.dbColumnName());
+				.arg( colDef->dbColumnName)
+				.arg( colDef->dbColumnName);
 		}
 	}
 	
@@ -317,9 +322,9 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 QString SQLGenerator::generateLoadObjectFromDBStmt(const QVariantList& pk, const QEOrmModel &model) const
 {
 	QStringList columns;
-	for( const QEOrmColumnDef& colDef : model.columns())
-		if( colDef.mappingType() == QEOrmColumnDef::MappingType::NoMappingType)
-			columns << colDef.dbColumnName();
+	for( const auto& colDef : model.columnDefs())
+		if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
+			columns << colDef->dbColumnName;
 
 	QString stmt;
 	QTextStream os( &stmt);

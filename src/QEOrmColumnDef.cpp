@@ -15,74 +15,96 @@
  */
 
 #include "QEOrmColumnDef.hpp"
-#include "QEOrmColumnDefPrivate.hpp"
 #include <QEOrmModel.hpp>
+#include <QDebug>
+#include <QMetaEnum>
 #include <utility>
 
+QE_USE_NAMESPACE 
 using namespace std;
+namespace {
+	inline QString ANN_AUTO_INCREMENT() 
+	{ return QLatin1Literal( "@QEOrm.isAutoIncrement");}
+	inline QString ANN_DB_COLUMN() 
+	{ return QLatin1Literal( "@QEOrm.dbColumn");}
+	inline QString ANN_MAX_LENGTH() 
+	{ return QLatin1Literal( "@QEOrm.maxLength");}
+	inline QString ANN_NULL() 
+	{ return QLatin1Literal( "@QEOrm.isNull");}
+	inline QString ANN_DEFAULT() 
+	{ return QLatin1Literal( "@QEOrm.default");}
+	
+	inline QString ANN_MAPPING_TYPE() 
+	{ return QLatin1Literal( "@QEOrm.mapping.type");}
+	inline QString ANN_MAPPING_ENTITY() 
+	{ return QLatin1Literal( "@QEOrm.mapping.entity");}
+}
 
-QEOrmColumnDef::QEOrmColumnDef()
-	: d_ptr( new QEOrmColumnDefPrivate)
+QEOrmColumnDef::QEOrmColumnDef(
+				const QByteArray &propertyName,
+				const int propertyType,
+				const QString& dbColumnName,
+				const uint dbMaxLength)
+	: propertyName( propertyName), propertyType( propertyType),
+	dbColumnName( dbColumnName), dbMaxLength( dbMaxLength)
 {}
 
-QEOrmColumnDef::QEOrmColumnDef( const QEOrmColumnDef &other) noexcept
-	: d_ptr( other.d_ptr)
-{}
+QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type,
+	  	const QEAnnotationModel &model)
+	: propertyName(property), propertyType( type)
+{
+	decodeProperties( model);
+	
+	try {
+		decodeMapping( model);
+	} catch ( std::runtime_error &error){
+		qWarning() << error.what();
+		mappingType = MappingType::NoMappingType;
+	}
 
-QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type, const QEAnnotationModel &model)
-	: d_ptr( new QEOrmColumnDefPrivate( property, type, model))
-{}
+	if( type == QMetaType::Char 
+		|| type == QMetaType::QChar
+		|| type == QMetaType::SChar
+		|| type == QMetaType::UChar)
+		dbMaxLength = 1;
+}
 
-bool QEOrmColumnDef::isValid() const noexcept
-{ return ! d_ptr->propertyName.isEmpty(); }
+void QEOrmColumnDef::decodeProperties(const QEAnnotationModel &model)
+{
+	dbColumnName = model.annotation( propertyName, ANN_DB_COLUMN())
+		.value( propertyName).toString();
+	isDbNullable = model.annotation( propertyName, ANN_NULL())
+		.value( false).toBool();
+	isDbAutoIncrement = model.annotation( propertyName, ANN_AUTO_INCREMENT())
+		.value( false).toBool();
+	dbMaxLength = model.annotation( propertyName, ANN_MAX_LENGTH())
+        .value( 0).toUInt();
+}
 
-QByteArray QEOrmColumnDef::propertyName() const noexcept
-{ return d_ptr->propertyName; }
-
-int QEOrmColumnDef::propertyType() const noexcept
-{ return d_ptr->propertyType;}
-
-
-
-QString QEOrmColumnDef::dbColumnName() const noexcept
-{ return d_ptr->dbColumnName; }
+void QEOrmColumnDef::decodeMapping(const QEAnnotationModel &model)
+{
+	bool enumOk;
+	QMetaEnum meMappingType = QMetaEnum::fromType< QEOrmColumnDef::MappingType>();
+	const QString mappingTypeStr = model.annotation( propertyName, ANN_MAPPING_TYPE())
+        .value( QLatin1Literal("NoMappingType")).toString();
+	mappingType = static_cast<MappingType>( meMappingType.keyToValue( mappingTypeStr.toLocal8Bit().constData(), &enumOk)); 
+	if( !enumOk)
+		throw runtime_error( QString("QE Orm cannot decode mapping type '%1' on property '%2'").arg( mappingTypeStr).arg( QString( propertyName)).toStdString());
+	
+	if( mappingType != MappingType::NoMappingType)
+	{
+        const QString mappingEntityName = model.annotation( propertyName, ANN_MAPPING_ENTITY()).value().toString();
+		if( mappingEntityName.isEmpty())
+			throw runtime_error( QString("QE Orm requires no empty mapping entity on property '%1'").arg( QString(propertyName)).toStdString());
 		
-void QEOrmColumnDef::setDbColumnName( const QString& name)
-{ d_ptr->dbColumnName = name; }
-
-QVariant QEOrmColumnDef::dbDefaultValue() const noexcept
-{ return d_ptr->dbDefaultValue; }
-
-uint QEOrmColumnDef::dbMaxLength() const noexcept
-{ return d_ptr->dbMaxLength; }
-
-bool QEOrmColumnDef::isDbAutoIncrement() const noexcept
-{ return d_ptr->isDbAutoIncrement; }
-
-void QEOrmColumnDef::setDbAutoIncrement( const bool v) noexcept
-{ d_ptr->isDbAutoIncrement = v;}
-
-bool QEOrmColumnDef::isDbNullable() const noexcept
-{ return d_ptr->isDbNullable; }
-
-bool QEOrmColumnDef::isDbUnique() const noexcept
-{ return d_ptr->isDbUnique; }
-
-void QEOrmColumnDef::setDbUnique( const bool v) noexcept
-{ d_ptr->isDbUnique = v;}
-
-bool QEOrmColumnDef::isPartOfPrimaryKey() const noexcept
-{ return d_ptr->isPartOfPrimaryKey; }
-
-void QEOrmColumnDef::setPartOfPrimaryKey( const bool v) noexcept
-{ d_ptr->isPartOfPrimaryKey = v; }
+		// Check metadata is avaible.
+		const QString classPointer = mappingEntityName + QChar('*');
+		const int typeId = QMetaType::type( classPointer.toLocal8Bit());
+		if( typeId == QMetaType::UnknownType)
+			throw runtime_error( QString("QE Orm cannot map entity of type '%1'").arg( mappingEntityName).toStdString());
+		
+		mappingEntity = QMetaType::metaObjectForType( typeId);
+	}
+}
 
 
-QEOrmColumnDefPrivate::MappingType QEOrmColumnDef::mappingType() const noexcept
-{ return d_ptr->mappingType; }
-
-QEOrmColumnDef::MappingFetch QEOrmColumnDef::mappingFetch() const noexcept
-{ return d_ptr->mappingFetch; }
-
-const QMetaObject *QEOrmColumnDef::mappingEntity() const noexcept
-{ return d_ptr->mappingEntity; }

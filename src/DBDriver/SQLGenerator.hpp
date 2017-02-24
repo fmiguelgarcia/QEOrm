@@ -34,8 +34,16 @@
 class SQLGenerator
 {
 	public:
+		struct TableStatement 
+		{
+			QString tableName;
+			QString sqlStatement;
+		};
+		using TableStatementList = std::vector<TableStatement>;
+		
+		
 		/// @brief It generates the list of SQL statements to create @p model.
-		virtual QStringList createTablesIfNotExist( const QEOrmModel&  model) const;
+		virtual TableStatementList createTablesIfNotExist( const QEOrmModelShd&  model) const;
 	
 		/// @brief It generates a SQL statement to check if @p o already exists on mode @p model
 		virtual QString generateExistsObjectOnDBStmt( const QObject* o, const QEOrmModel& model) const;
@@ -55,7 +63,7 @@ class SQLGenerator
 		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
 	
 		/// @brief It generates the SQL partial statement for the column definition @p column. 
-		virtual QString generateColumnDefinition( const QEOrmColumnDef column) const;
+		virtual QString generateColumnDefinition( const QEOrmColumnDef& column) const;
 		
 		/// @brief It generates the SQL partial statement for primary key on @p model  
 		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const;

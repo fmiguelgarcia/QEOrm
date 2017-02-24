@@ -14,40 +14,63 @@
  * information use the contact form at http://www.dmious.com/contact-us.
  */
 #pragma once
-#include "QEOrmModelPrivate.hpp"
 #include "QEOrmForeignDef.hpp"
 #include <QEAnnotation/QEAnnotation.hpp>
+#include <functional>
 
 QE_BEGIN_NAMESPACE
 
+class QEOrm;
+class QEOrmModelPrivate;
+class QEOrmModel;
+using QEOrmModelShd = std::shared_ptr<QEOrmModel>;
+
 class QEOrmModel : public QEAnnotationModel
 {
+	friend class QEOrm;
 	public:
-		explicit QEOrmModel( const QMetaObject* meta);
-		QEOrmModel( const QEOrmModel& ) noexcept;
-		QEOrmModel& operator=( const QEOrmModel& ) noexcept;
+		using QEOrmColumnDefList = std::vector<QEOrmColumnDefShd>;
+		using QEOrmForeignDefList = std::vector<QEOrmForeignDefShd>;
+		using FindColDefPredicate = std::function<bool(const QEOrmColumnDefShd&)>;
 
-		/// @brief Add reference Many (this model) to one @p reference
-		void addRefToOne( const QByteArray& propertyName, const QEOrmModel& reference);
+		struct findByPropertyName { QString name; };
+		struct findByColumnName { QString name; };
+		struct findByAutoIncrement {};
+
+		explicit QEOrmModel( const QMetaObject* meta);
 
 		// DB 	
-		QString table() const noexcept;
-		std::vector<QEOrmColumnDef> columns() const noexcept;
-		std::vector<QEOrmColumnDef> primaryKey() const noexcept;
-		std::vector<QEOrmForeignDef> referencesToOne() const noexcept;
+		const QString& table() const noexcept;
+		const QEOrmColumnDefList& columnDefs() const noexcept;
+		const QEOrmColumnDefList& primaryKeyDef() const noexcept;
+		const QEOrmForeignDefList& referencesManyToOneDefs() const noexcept;
 	
+		/// @brief Add reference Many (this model) to one @p reference
+		void addReferenceManyToOne( const QByteArray& propertyName, 
+				const QEOrmModelShd& reference);
+
 		// Find utils	
-		QEOrmColumnDef findColumnByProperty( const QString & property) const noexcept;
-		QEOrmColumnDef findColumnByName( const QString & columnName) const noexcept;
-		QEOrmColumnDef findAutoIncrementColumn() const noexcept;
+		QEOrmColumnDefShd findColumnDef( const findByPropertyName& pn) const noexcept;
+		QEOrmColumnDefShd findColumnDef( const findByColumnName& cn) const noexcept;
+		QEOrmColumnDefShd findColumnDef( const findByAutoIncrement& ) const noexcept;
+		QEOrmColumnDefShd findColumnDef( FindColDefPredicate&& predicate) const noexcept;
+
+	protected:
+		QEOrmModel( const QEOrmModel& ) = delete;
+		QEOrmModel& operator=( const QEOrmModel& ) = delete;
 		
 	private:
 		void parseAnnotations( const QMetaObject* meta);
-		QStringList parseAnnotationsGetPrimaryKeys() const;
 		
 	private:
-		QSharedDataPointer<QEOrmModelPrivate> d_ptr;
+		QString m_table;
+		QEOrmColumnDefList m_columnDefs;
+		QEOrmColumnDefList m_primaryKeyDef;
+
+		QEOrmForeignDefList m_referencesManyToOneDefs;
+
+		QEOrmModelPrivate *d_ptr;
+		Q_DECLARE_PRIVATE(QEOrmModel)
 };
 
-Q_DECLARE_TYPEINFO( QEOrmModel, Q_MOVABLE_TYPE);
 QE_END_NAMESPACE

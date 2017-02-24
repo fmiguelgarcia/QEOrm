@@ -12,10 +12,8 @@ set( QEOrm_MINOR_VERSION 1)
 set( QEOrm_BUILD_VERSION 0)
 
 set( QEOrm_SRCS
-	QEOrmModelPrivate.cpp QEOrmModel.cpp 
-	QEOrmColumnDefPrivate.cpp QEOrmColumnDef.cpp 
+	QEOrmModel.cpp QEOrmColumnDef.cpp QEOrmForeignDef.cpp
 	QEOrmContainerWrapper.cpp
-	QEOrmForeignDef.cpp
 	DBDriver/SQLGenerator.cpp DBDriver/SQliteGenerator.cpp
 	QEOrm.cpp )
 if( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
