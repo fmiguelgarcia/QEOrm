@@ -279,7 +279,8 @@ void QEOrm::saveOneToMany(QObject *const source,
 	}
 }
 
-void QEOrm::load(const QVariantList pk, QObject *target) const
+void QEOrm::load(const QVariantList pk, 
+		QObject *target, stack<QObject*> context ) const
 {
 	const QMetaObject *mo = target->metaObject();
 	QEOrmModelShd model = getModel(mo);
@@ -307,8 +308,42 @@ void QEOrm::load(const QVariantList pk, QObject *target) const
 		}
 	}
 
-	/// @todo Load one to many
-//	loadOneToMany( target, context, model);
+	loadOneToMany( target, context, model);
+}
+
+void QEOrm::loadOneToMany( QObject* target,
+		stack<QObject*>& context, const QEOrmModelShd& model) const 
+{
+	ScopeStackedContext _( target, context);
+	for( const auto& colDef : model->columnDefs())
+	{
+		if( colDef->mappingType == QEOrmColumnDef::MappingType::OneToMany)
+		{
+			QVariantList list;
+			const QByteArray& propertyName = colDef->propertyName;
+
+			
+			// 1. Create object.
+			QMetaType mt( colDef->propertyType);
+			vector<char> buffer;
+			buffer.reserve( mt.sizeOf());
+			QObject* obj = reinterpret_cast<QObject*>( &buffer[0]);
+			mt.construct( obj, nullptr);
+
+			// 1. Get pk for that .
+			QVariantList pk;
+		  		
+			// 2. Load object
+			load( pk, obj, context);
+		  	QVariant value = QVariant::fromValue( obj);	
+			
+			// 3. Insert into variant list
+			list.push_back( value);
+
+			// 4. Assign property.
+			target->setProperty( propertyName, list);
+		}
+	}
 }
 
 void QEOrm::checkAndCreateDBTable( const QEOrmModelShd& model) const
