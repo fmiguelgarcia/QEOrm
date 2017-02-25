@@ -311,34 +311,63 @@ void QEOrm::load(const QVariantList pk,
 	loadOneToMany( target, context, model);
 }
 
+QObject* allocateAndCreateObject( const int type, QObject* parent)
+{
+	QMetaType mt( type);
+	char * buffer = new char[ mt.sizeOf()];
+	QObject* refObj = reinterpret_cast<QObject*>( &buffer);
+	mt.construct( refObj, parent);
+
+	return refObj;
+}
+
+map<QString, QVariant> whereClauseUsingForeignKey(
+		QObject * one,
+		const QEOrmForeignDefShd& fkDef)
+{
+	map<QString, QVariant> whereConditions;
+
+	QEOrmModelShd oneModel = QEOrm::instance().getModel( one->metaObject());
+	const auto& pk = oneModel->primaryKeyDef();
+	const auto& fk = fkDef->foreignKeys();
+
+	for( uint i = 0; i < pk.size(); ++i)
+	{
+		whereConditions.insert(
+				make_pair(
+					fk[i]->dbColumnName,
+					one->property( pk[i]->propertyName )));
+	}
+
+	return whereConditions;	
+}
+
 void QEOrm::loadOneToMany( QObject* target,
 		stack<QObject*>& context, const QEOrmModelShd& model) const 
 {
 	ScopeStackedContext _( target, context);
-	for( const auto& colDef : model->columnDefs())
+	for( const QEOrmColumnDefShd& colDef : model->columnDefs())
 	{
 		if( colDef->mappingType == QEOrmColumnDef::MappingType::OneToMany)
 		{
 			QVariantList list;
 			const QByteArray& propertyName = colDef->propertyName;
-
 			
 			// 1. Create object.
-			QMetaType mt( colDef->propertyType);
-			vector<char> buffer;
-			buffer.reserve( mt.sizeOf());
-			QObject* obj = reinterpret_cast<QObject*>( &buffer[0]);
-			mt.construct( obj, nullptr);
+			QObject *refObj = allocateAndCreateObject( colDef->propertyType,
+					target);
 
-			// 1. Get pk for that .
-			QVariantList pk;
-		  		
+			QEOrmModelShd manyModel = QEOrm::getModel( colDef->mappingEntity);
+
+			map<QString, QVariant> whereConditions = whereClauseUsingForeignKey
+		( target, manyModel->findForeignTo( model)); 
+
 			// 2. Load object
-			load( pk, obj, context);
-		  	QVariant value = QVariant::fromValue( obj);	
+			// load( pk, obj, context);
+		  	// QVariant value = QVariant::fromValue( obj);	
 			
 			// 3. Insert into variant list
-			list.push_back( value);
+			// list.push_back( value);
 
 			// 4. Assign property.
 			target->setProperty( propertyName, list);

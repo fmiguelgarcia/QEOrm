@@ -58,6 +58,7 @@ class SQLGenerator
 		/// using @p pk as values for primary key.
 		virtual QString generateLoadObjectFromDBStmt( const QVariantList& pk, const QEOrmModel &model) const;
 
+
 	protected:
 		/// @brief It creates the SQL statement for @p model.
 		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
