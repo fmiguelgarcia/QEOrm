@@ -55,6 +55,7 @@
 #include <DBDriver/SQLGenerator.hpp>
 #include <QECommon/QES11n.hpp>
 #include <QSet>
+#include <QSqlRecord>
 #include <memory>
 #include <map>
 #include <stack>
@@ -69,26 +70,14 @@ class QEOrm
 
 		QEOrmModelShd getModel( const QMetaObject *metaObject) const;
 
-		void save( QObject *const source, std::stack<QObject*> context 
-				= std::stack<QObject*>()) const;
-		void load( const QVariantList pk, QObject* target,
-				std::stack<QObject*> context = std::stack<QObject*>()) const;
+		void save( QObject *const source) const;
+		void load( const QVariantList pk, QObject* target) const;
 
 	private:
 		QEOrm();
 		Q_DISABLE_COPY(QEOrm)
 		void checkAndCreateDBTable( const QEOrmModelShd& model) const;
 		
-		void insertObjectOnDB(QObject *source, 
-				const std::stack<QObject*>& context, const QEOrmModel &model) const;
-		void updateObjectOnDB(const QObject *source, 
-				const std::stack<QObject*>& context, const QEOrmModel& model) const;
-		void saveOneToMany(QObject *source, 
-				std::stack<QObject*>& context, const QEOrmModelShd& model) const;
-		void loadOneToMany( QObject* target, std::stack<QObject*>& context, 
-				const QEOrmModelShd& model) const;
-
-
 		bool existsObjectOnDB(const QObject *source, const QEOrmModel& model) const;
 		QString generateCreateTableIfNotExists( const QEOrmModel& model) const;
 

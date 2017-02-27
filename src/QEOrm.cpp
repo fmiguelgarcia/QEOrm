@@ -25,13 +25,9 @@
  */
 #include <QEOrm.hpp>
 #include <DBDriver/SQliteGenerator.hpp>
+#include <helpers/QEOrmLoadHelper.hpp>
+#include <helpers/QEOrmSaveHelper.hpp>
 #include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QSqlRecord>
-#include <QSqlField>
-#include <QMetaObject>
-#include <QDebug>
 #include <utility>
 #include <map>
 #include <stack>
@@ -101,113 +97,12 @@ namespace {
 		return itr->second();
 	}
 
-	void debugExecutedQuery( QSqlQuery& query)
+	void throwCannotFindModelForClass( const QMetaObject* mo )
 	{
-		QString message;
-		QTextStream os( &message);
-		const QMap<QString, QVariant> boundValues = query.boundValues();
-		
-		os << QLatin1Literal( "QE Orm ") << endl
-			<< QLatin1Literal( "   + query: ") << query.executedQuery() << endl
-			<< QLatin1Literal( "   + parameters: { ");
-		for( const QString boundKey : boundValues.keys())
-			os << QLatin1Char('{') << boundKey << QLatin1Literal(", ") << boundValues[boundKey].toString() << QLatin1Literal("} ");
-		os << QLatin1Char('}') << endl;
-		
-		qDebug() << message;
+		throw runtime_error( QString( "QE Orm cannot find model for '%1' class")
+				.arg( (mo)?(mo->className()):("unknow class")).toStdString());
 	}
 
-	QSqlQuery executeSqlOrThrow( QSqlQuery& query, const QString& errorMsg)
-	{
-		const bool isSuccess = query.exec();
-		debugExecutedQuery( query);
-		
-		if( !isSuccess)
-		{
-			const QSqlError sqlError = query.lastError();
-			if( sqlError.type() != QSqlError::NoError )
-			{
-				const QString msg =  errorMsg
-					.arg( sqlError.nativeErrorCode())
-					.arg( sqlError.text());
-				throw runtime_error( msg.toStdString());
-			}
-		}
-		return query;
-	}
-	
-	QSqlQuery executeSqlOrThrow( const QVariantList& bindValues, 
-			const QString& stmt, const QString& errorMsg)
-	{
-		QSqlQuery query;
-		query.prepare( stmt);
-		for( int i = 0; i < bindValues.size(); ++i)
-			query.bindValue( i, bindValues[i]);
-		
-		return executeSqlOrThrow( query, errorMsg);
-	}
-	
-	QSqlQuery executeSqlOrThrow( const QObject* object, 
-			const stack<QObject*> &context, const QEOrmModel& model, 
-			const QString& stmt, const QString& errorMsg )
-	{
-		QSqlQuery query;
-		query.prepare( stmt);
-		for( const auto& colDef: model.columnDefs())
-		{
-			if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
-			{
-				QVariant value = object->property( colDef->propertyName);
-				if( colDef->isDbAutoIncrement && value.toInt() == 0)
-					value = QVariant();
-				query.bindValue( QString(":%1").arg( colDef->dbColumnName), value);
-			}
-		}
-
-		if( !context.empty())
-		{
-			QObject *contextTopObject = context.top();
-			for( const auto& fkDef : model.referencesManyToOneDefs())
-			{
-				const auto& foreignKeys = fkDef->foreignKeys();
-				const auto& refKeys = fkDef->reference()->primaryKeyDef();
-				for( uint i = 0; i < foreignKeys.size(); ++i) 
-				{
-					const QVariant value = contextTopObject->property( 
-							refKeys[i]->propertyName); 
-
-					query.bindValue( 
-						QString( ":%1").arg( foreignKeys[i]->dbColumnName),
-						value);
-				}
-			}
-		}
-	
-		return executeSqlOrThrow( query, errorMsg);
-	}
-
-	void executeSqlOrThrow( const QStringList& stmtList, const QString& errorMsg)
-	{
-		for( const QString& stmt: stmtList)
-		{
-			QSqlQuery query;
-			query.prepare( stmt);
-			executeSqlOrThrow( query, errorMsg);
-		}
-	}
-
-
-	struct ScopeStackedContext 
-	{
-		ScopeStackedContext( QObject* obj, stack<QObject*>& context)
-			:m_context( context)
-		{ context.push( obj); }
-
-		~ScopeStackedContext()
-		{ m_context.pop();}
-
-		stack<QObject*> &m_context;
-	};
 }
 
 std::unique_ptr<QEOrm> QEOrm::m_instance;
@@ -233,92 +128,33 @@ QEOrmModelShd QEOrm::getModel( const QMetaObject* metaObject) const
 		m_cachedModelsMtx, 
 		[metaObject](){ return make_shared<QEOrmModel>(metaObject);});
 }
+		
+void QEOrm::load( const QVariantList pk, QObject* target) const
+{
+	const QMetaObject* mo = target->metaObject();
+	QEOrmModelShd model = getModel( mo);
+	if( !model)
+		throwCannotFindModelForClass( mo);
 
-void QEOrm::save(QObject *const source, stack<QObject*> context) const
+	stack<QObject*> context;
+	QEOrmLoadHelper helper( m_sqlGenerator.get());
+	helper.sqlHelper.isShowQueryEnabled = true;
+	helper.load( pk, model, target, context);
+}
+
+void QEOrm::save(QObject *const source) const
 {
 	const QMetaObject *mo = source->metaObject();
-	QEOrmModelShd model = getModel(mo);
+	QEOrmModelShd model = QEOrm::instance().getModel(mo);
+	if( !model )
+		throwCannotFindModelForClass( mo);
+		
+	checkAndCreateDBTable( model);
 
-	if( model )
-	{
-		checkAndCreateDBTable( model);
-		if( existsObjectOnDB( source, *model))
-			updateObjectOnDB( source, context, *model);
-		else
-			insertObjectOnDB( source, context, *model);
-
-		saveOneToMany( source, context, model);
-	}
-}
-
-
-void QEOrm::saveOneToMany(QObject *const source, 
-		stack<QObject*>& context, const QEOrmModelShd& model) const
-{
-	ScopeStackedContext _( source, context);
-	for( const auto& colDef : model->columnDefs())
-	{
-		if( colDef->mappingType == QEOrmColumnDef::MappingType::OneToMany)
-		{
-			const QByteArray& propertyName = colDef->propertyName;
-			const QVariant propertyValue = source->property( propertyName);
-			if( ! propertyValue.canConvert<QVariantList>())
-				throw runtime_error( 
-					QString("QE Orm can only use QVariantList for mapping property %1") 
-						.arg( QString(propertyName)).toStdString());
-
-			QVariantList values = propertyValue.toList();
-			for( QVariant& value : values)
-			{
-				QObject *refItem = value.value<QObject*>();
-				if( refItem )
-					save( refItem, context);
-			}
-			qDebug() << "Property " << propertyName << " has " << values.size() << " items.";
-		}
-	}
-}
-
-void QEOrm::load(const QVariantList pk, 
-		QObject *target, stack<QObject*> context ) const
-{
-	const QMetaObject *mo = target->metaObject();
-	QEOrmModelShd model = getModel(mo);
-	if( !model)
-		return;
-
-	QSqlQuery query = executeSqlOrThrow(
-		pk,
-		m_sqlGenerator->generateLoadObjectFromDBStmt( pk, *model),
-		QString( "QEOrm cannot load object from database %1: %2"));
-	
-	if( !query.next())
-		throw runtime_error( "QEOrm cannot load object");
-	
-	QSqlRecord record = query.record();
-	for( int i = 0; i < record.count(); ++i)
-	{
-		const QSqlField field = record.field( i);
-		const auto colDef = model->findColumnDef( 
-				QEOrmModel::findByColumnName{ field.name()});
-		if( colDef )
-		{
-			target->setProperty( colDef->propertyName.constData(), 
-							 field.value());
-		}
-	}
-
-	loadOneToMany( target, context, model);
-}
-
-QObject* allocateAndCreateObject( const int type, QObject* parent)
-{
-	QMetaType mt( type);
-	char * buffer = new char[ mt.sizeOf()];
-	QObject* refObj = reinterpret_cast<QObject*>( &buffer);
-	mt.construct( refObj, parent);
-
-	return refObj;
+	stack<QObject*> context;
+	QEOrmSaveHelper helper( m_sqlGenerator.get());
+	helper.sqlHelper.isShowQueryEnabled = true;
+	helper.save( source, model, context);
 }
 
 map<QString, QVariant> whereClauseUsingForeignKey(
@@ -342,39 +178,6 @@ map<QString, QVariant> whereClauseUsingForeignKey(
 	return whereConditions;	
 }
 
-void QEOrm::loadOneToMany( QObject* target,
-		stack<QObject*>& context, const QEOrmModelShd& model) const 
-{
-	ScopeStackedContext _( target, context);
-	for( const QEOrmColumnDefShd& colDef : model->columnDefs())
-	{
-		if( colDef->mappingType == QEOrmColumnDef::MappingType::OneToMany)
-		{
-			QVariantList list;
-			const QByteArray& propertyName = colDef->propertyName;
-			
-			// 1. Create object.
-			QObject *refObj = allocateAndCreateObject( colDef->propertyType,
-					target);
-
-			QEOrmModelShd manyModel = QEOrm::getModel( colDef->mappingEntity);
-
-			map<QString, QVariant> whereConditions = whereClauseUsingForeignKey
-		( target, manyModel->findForeignTo( model)); 
-
-			// 2. Load object
-			// load( pk, obj, context);
-		  	// QVariant value = QVariant::fromValue( obj);	
-			
-			// 3. Insert into variant list
-			// list.push_back( value);
-
-			// 4. Assign property.
-			target->setProperty( propertyName, list);
-		}
-	}
-}
-
 void QEOrm::checkAndCreateDBTable( const QEOrmModelShd& model) const
 {
 	const bool isAlreadyChecked = existsOrCreateUsingDoubleCheckeLocking( 
@@ -389,55 +192,12 @@ void QEOrm::checkAndCreateDBTable( const QEOrmModelShd& model) const
 			sqlCommands << ts.sqlStatement;
 			existsOrCreateUsingDoubleCheckeLocking( m_cachedCheckedTables, ts.tableName, m_cachedCheckedTablesMtx);
 		}
-		
-		executeSqlOrThrow( sqlCommands, QString("QEOrm cannot create table '%1' due to error %2: %3")
-				.arg( model->table()));
-	}
-}
-
-bool QEOrm::existsObjectOnDB(const QObject *source, const QEOrmModel &model) const
-{
-	QVariantList pkValues;
-	for( const auto& colDef: model.primaryKeyDef())
-	{
-		const QVariant value = source->property( colDef->propertyName);
-		if( colDef->isDbAutoIncrement && value.toInt() == 0)
-			pkValues << QVariant();
-		else
-			pkValues << value;
-	}
 	
-	QSqlQuery query = executeSqlOrThrow( 
-		pkValues,
-		m_sqlGenerator->generateExistsObjectOnDBStmt( source, model),
-		QString("QEOrm cannot check existance of object into db %1: %2"));
-	return query.next();
-}
-
-void QEOrm::insertObjectOnDB(QObject *source, const stack<QObject*>& context, 
-		const QEOrmModel &model) const
-{
-	QSqlQuery query = executeSqlOrThrow( 
-		source, context, model, 
-		m_sqlGenerator->generateInsertObjectStmt( source, model),
-		QLatin1Literal("QEOrm cannot insert a new object into database %1: %2"));
-
-	// Update object
-	QVariant insertId = query.lastInsertId();
-	if( ! insertId.isNull())
-	{
-		const auto colDef = model.findColumnDef( QEOrmModel::findByAutoIncrement{});
-		if( colDef)
-			source->setProperty( colDef->propertyName.constData(), insertId);
+		QEOrmSqlHelper helper;
+		helper.isShowQueryEnabled = true;
+		helper.execute( sqlCommands, 
+				QString("QEOrm cannot create table '%1' due to error %2: %3")
+					.arg( model->table()));
 	}
-}
-
-void QEOrm::updateObjectOnDB(const QObject *source, 
-		const stack<QObject*>& context, const QEOrmModel &model) const
-{
-	executeSqlOrThrow(
-		source, context, model,
-		m_sqlGenerator->generateUpdateObjectStmt( source, model),
-		QLatin1Literal("QEOrm cannot update an object from database %1: %2"));
 }
 

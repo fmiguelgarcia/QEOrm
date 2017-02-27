@@ -189,3 +189,16 @@ QEOrmColumnDefShd QEOrmModel::findColumnDef( const QEOrmModel::findByAutoIncreme
 				{ return colDef->isDbAutoIncrement;});
 }
 
+const QEOrmForeignDefShd QEOrmModel::findForeignTo( const QEOrmModelShd& model) const noexcept
+{
+	QEOrmForeignDefShd fk;
+
+	const auto itr = find_if( begin( m_referencesManyToOneDefs), end( m_referencesManyToOneDefs),
+			[model]( const QEOrmForeignDefShd& fkDef){
+				return fkDef->reference() = model;});
+	if( itr != end( m_referencesManyToOneDefs))
+		fk = *itr;
+
+	return fk;
+}
+

@@ -54,7 +54,7 @@ class QEOrmModel : public QEAnnotationModel
 		QEOrmColumnDefShd findColumnDef( const findByColumnName& cn) const noexcept;
 		QEOrmColumnDefShd findColumnDef( const findByAutoIncrement& ) const noexcept;
 		QEOrmColumnDefShd findColumnDef( FindColDefPredicate&& predicate) const noexcept;
-		const QEOrmForeignDefShd& findForeignTo( const QEOrmModelShd& model) const noexcept;	
+		const QEOrmForeignDefShd findForeignTo( const QEOrmModelShd& model) const noexcept;	
 
 	protected:
 		QEOrmModel( const QEOrmModel& ) = delete;

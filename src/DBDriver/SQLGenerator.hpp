@@ -41,7 +41,21 @@ class SQLGenerator
 		};
 		using TableStatementList = std::vector<TableStatement>;
 		
-		
+		/// @brief It generates an SQL statement to load an object from @p model, 
+		/// using @p pk as values for primary key.
+		virtual QString selectionUsingPrimaryKey( const QVariantList& pk, 
+				const QEOrmModel &model) const;
+
+		/// @brief It creates an SQL statement to load objects using @p fk foreign
+		/// key in model @p model.
+		virtual QString selectionUsingForeignKey( const QEOrmForeignDef& fk, 
+				const QEOrmModel& model) const;
+
+		/// @brief It return the projection (SELECT clause) for specific model
+		virtual QString projection( const QEOrmModel &model) const;
+
+
+	
 		/// @brief It generates the list of SQL statements to create @p model.
 		virtual TableStatementList createTablesIfNotExist( const QEOrmModelShd&  model) const;
 	
@@ -54,12 +68,16 @@ class SQLGenerator
 		/// @brief It generates an SQL statement to update fields of @p o.
 		virtual QString generateUpdateObjectStmt( const QObject *o, const QEOrmModel& model) const;
 		
-		/// @brief It generates an SQL statement to load an object from @p model, using 
-		/// using @p pk as values for primary key.
-		virtual QString generateLoadObjectFromDBStmt( const QVariantList& pk, const QEOrmModel &model) const;
-
 
 	protected:
+
+		/// @brief It generates the SQL partial WHERE statement to locate an object using 
+		///  its primary key into @p model.
+		virtual QString filterByPrimaryKey( const QEOrmModel &model) const;
+
+		virtual QString filterByForeignKey( const QEOrmForeignDef &fkDef) const;
+
+	
 		/// @brief It creates the SQL statement for @p model.
 		virtual QString createTableIfNotExist( const QEOrmModel&  model) const;
 	
@@ -72,10 +90,7 @@ class SQLGenerator
 		/// @brief It generate the SQL partial statement for foreign key on @p model.
 		virtual QString generateForeignKeyDefinition( const QEOrmModel& model) const;
 
-		/// @brief It generates the SQL partial WHERE statement to locate an object using 
-		///  its primary key into @p model.
-		virtual QString generateWhereClause( const QEOrmModel &model) const;
-	
+
 		/// @brief It maps the C++ type @p propertyType into a database type.
 		/// @param size In case of strings, you can limit the number of characters. By default
 		///  it is 0, which means no limitation at all.

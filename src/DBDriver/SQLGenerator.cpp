@@ -225,34 +225,33 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 	}
 }
 
-
-QString SQLGenerator::generateWhereClause( const QEOrmModel &model) const 
+QString SQLGenerator::filterByPrimaryKey( const QEOrmModel &model) const 
 {
 	QStringList pkWhereClause;
 	const auto pkColumns = model.primaryKeyDef();
 
+	QString dbColName;
 	for( const auto& colDef : pkColumns) 
-		pkWhereClause << QString(" %1 == :%2")
-			.arg( colDef->dbColumnName)
-			.arg( colDef->dbColumnName);
-	
-	return pkWhereClause.join( QLatin1Literal(" AND "));
-}
-
-/*
-QString SQLGenerator::generateWhereClause( const QObject* o, const QEOrmModel &model) const 
-{
-	QStringList pkWhereClause;
-	for( QEOrmColumnDef colDef: model.primaryKey())
 	{
-		const QVariant value = o->property( colDef.propertyName().constData());
-		pkWhereClause << QString(" %1 == %2")
-				.arg( colDef.dbColumnName())
-				.arg( variantToSQL( value, colDef.propertyType()));
+		dbColName = colDef->dbColumnName;
+		pkWhereClause << QString(" %1 == :%2")
+			.arg( dbColName) .arg( dbColName);
 	}
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
-}*/
+}
+		
+QString SQLGenerator::filterByForeignKey( const QEOrmForeignDef& fkDef) const 
+{
+	const QEOrmForeignDef::QEOrmColumnDefList fkList = fkDef.foreignKeys();
+	const QEOrmForeignDef::QEOrmColumnDefList pkList = fkDef.reference()->primaryKeyDef();
+
+	QStringList filters;
+	for( uint i = 0; i< fkList.size(); ++i)
+		filters << QString( "%1 = :%2").arg( fkList[i]->dbColumnName).arg( pkList[i]->dbColumnName);
+
+	return filters.join( QLatin1Literal( " AND "));
+}
 
 QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrmModel &model) const
 {
@@ -260,7 +259,7 @@ QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrm
 	QTextStream os( &stmt);
 	
 	os << QLatin1Literal( "SELECT * FROM '") << model.table() << QLatin1Literal("' WHERE ");
-	os << generateWhereClause( model) << QLatin1Literal( " LIMIT 1");
+	os << filterByPrimaryKey( model) << QLatin1Literal( " LIMIT 1");
 	
 	return stmt;
 }
@@ -314,13 +313,31 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 	QTextStream os( &stmt);
 	os << QLatin1Literal( "UPDATE '") << model.table() 
 		<< QLatin1Literal( "' SET ") << setExpList.join( QLatin1Literal(", "))
-		<< QLatin1Literal( " WHERE ") << generateWhereClause( model);
+		<< QLatin1Literal( " WHERE ") << filterByPrimaryKey( model);
 
 	return stmt;
 }
 
-QString SQLGenerator::generateLoadObjectFromDBStmt(const QVariantList& pk, const QEOrmModel &model) const
+QString SQLGenerator::selectionUsingPrimaryKey(const QVariantList& pk, const QEOrmModel &model) const
 {
+	QString stmt;
+	QTextStream os( &stmt);
+	os << projection( model) << QLatin1Literal( " WHERE ") << filterByPrimaryKey( model);
+	return stmt;
+}
+
+QString SQLGenerator::selectionUsingForeignKey( const QEOrmForeignDef& fkDef, const QEOrmModel& model) const
+{
+	QString stmt;
+	QTextStream os( &stmt);
+	os << projection( model) << QLatin1Literal( " WHERE ") << filterByForeignKey( fkDef);
+
+	return stmt;
+}
+
+QString SQLGenerator::projection( const QEOrmModel &model) const
+{
+	// Get no mapping columns
 	QStringList columns;
 	for( const auto& colDef : model.columnDefs())
 		if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
@@ -328,8 +345,8 @@ QString SQLGenerator::generateLoadObjectFromDBStmt(const QVariantList& pk, const
 
 	QString stmt;
 	QTextStream os( &stmt);
-	os << QLatin1Literal(" SELECT ") << columns.join( ", ")
-		<< QLatin1Literal( " FROM '") << model.table() << QLatin1Char('\'')
-		<< QLatin1Literal( " WHERE ") << generateWhereClause( model);
+	os << QLatin1Literal( "SELECT ") << columns.join( QLatin1Literal(", "))
+		<< QLatin1Literal( " FROM '") << model.table() << QLatin1Literal("' ");
+
 	return stmt;
 }

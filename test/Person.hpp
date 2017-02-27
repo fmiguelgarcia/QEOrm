@@ -47,7 +47,7 @@ class Person
 		void setContactInfoList( const std::vector<ContactInfo>& );
 
 	public:
-		int id;
+		int id = 0;
 		QString name;
 		QDateTime begin;
 		QDateTime end;
