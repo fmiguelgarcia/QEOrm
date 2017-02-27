@@ -52,10 +52,10 @@
  */
 #pragma once
 #include <QEOrmModel.hpp>
+#include <QEOrmResultSet.hpp>
 #include <DBDriver/SQLGenerator.hpp>
-#include <QECommon/QES11n.hpp>
+#include <helpers/QEOrmFindHelper.hpp>
 #include <QSet>
-#include <QSqlRecord>
 #include <memory>
 #include <map>
 #include <stack>
@@ -63,6 +63,7 @@
 
 QE_BEGIN_NAMESPACE
 
+/// @todo Add support for QSqlQuery::isForwardOnly
 class QEOrm 
 {
 	public:
@@ -72,6 +73,15 @@ class QEOrm
 
 		void save( QObject *const source) const;
 		void load( const QVariantList pk, QObject* target) const;
+
+		template< class T>
+		QEOrmResultSet<T> findEqual( const std::map<QString, QVariant>& properties,
+			QObject* parent = nullptr) const
+		{
+			const QMetaObject* mo = & T::staticMetaObject;
+			QEOrmFindHelper findHelper( mo, m_sqlGenerator.get());		
+			return QEOrmResultSet<T>( findHelper.findEqualProperty(properties), parent);
+		}
 
 	private:
 		QEOrm();

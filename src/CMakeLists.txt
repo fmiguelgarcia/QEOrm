@@ -16,7 +16,9 @@ set( QEOrm_SRCS
 	QEOrmContainerWrapper.cpp
 	DBDriver/SQLGenerator.cpp DBDriver/SQliteGenerator.cpp
 	helpers/QEOrmSqlHelper.cpp helpers/QEOrmLoadHelper.cpp
-	helpers/QEOrmSaveHelper.cpp utilities/QEOrmContext.cpp
+	helpers/QEOrmSaveHelper.cpp helpers/QEOrmFindHelper.cpp
+	utilities/QEOrmContext.cpp
+	QEOrmResultSet.cpp
 	QEOrm.cpp )
 if( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	add_definitions( -Wall)

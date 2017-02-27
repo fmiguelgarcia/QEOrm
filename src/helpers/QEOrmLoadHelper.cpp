@@ -28,8 +28,15 @@ void QEOrmLoadHelper::load( const QVariantList pk, const QEOrmModelShd& model,
 	loadOneToMany( target, model, context);
 }
 
+void QEOrmLoadHelper::load( QObject* target, QSqlQuery& query)
+{
+	auto model = QEOrm::instance().getModel( target->metaObject());
+	QSqlRecord record = query.record();
+	loadObjectFromRecord( target, *model, record);
+}
+
 void QEOrmLoadHelper::loadObjectFromRecord( QObject* target, 
-	const QEOrmModel& model, QSqlRecord& record) const
+	const QEOrmModel& model, QSqlRecord& record) 
 {
 	for( int i = 0; i < record.count(); ++i)
 	{

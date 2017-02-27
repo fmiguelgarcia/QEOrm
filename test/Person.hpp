@@ -39,7 +39,7 @@ class Person
 	Q_CLASSINFO( "contactInfo", "@QEOrm.mapping.type=OneToMany @QEOrm.mapping.entity=ContactInfo")
 
 	public:
-		explicit Person( QObject* parent = nullptr);
+		Q_INVOKABLE explicit Person( QObject* parent = nullptr);
 		bool operator == ( const Person& other) const;
 		
 

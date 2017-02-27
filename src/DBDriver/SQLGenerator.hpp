@@ -51,6 +51,10 @@ class SQLGenerator
 		virtual QString selectionUsingForeignKey( const QEOrmForeignDef& fk, 
 				const QEOrmModel& model) const;
 
+		virtual QString selectionUsingProperties( 
+				const QEOrmModel::QEOrmColumnDefList& defs,
+				const QEOrmModel& model) const;
+
 		/// @brief It return the projection (SELECT clause) for specific model
 		virtual QString projection( const QEOrmModel &model) const;
 
@@ -76,6 +80,8 @@ class SQLGenerator
 		virtual QString filterByPrimaryKey( const QEOrmModel &model) const;
 
 		virtual QString filterByForeignKey( const QEOrmForeignDef &fkDef) const;
+
+		virtual QString filterByProperties( const QEOrmModel::QEOrmColumnDefList &colDefList) const;
 
 	
 		/// @brief It creates the SQL statement for @p model.

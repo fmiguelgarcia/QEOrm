@@ -77,4 +77,31 @@ void QEOrmTest::checkTableCreation()
 	QVERIFY( p1 == p2);
 }
 
+void QEOrmTest::findTest()
+{
+	int count = 0;
+	Person p1;
+	p1.name = "Miguel";
+	p1.begin = QDateTime::currentDateTime();
+	p1.end = p1.begin.addMSecs( 1000 * 60 );
+
+	QEOrm::instance().save( &p1);
+
+	auto rs = QEOrm::instance().findEqual<Person>( {{QString("name"), "Miguel"}});
+	auto itr = begin( rs);
+	while( itr != end(rs))
+	{
+		Person *pFound = *itr;
+		if( pFound)
+		{
+			QVERIFY( pFound->name == "Miguel");
+			++count;	
+		}
+		++itr;
+	}
+
+	QVERIFY( count > 0);
+
+}
+
 

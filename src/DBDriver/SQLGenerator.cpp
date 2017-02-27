@@ -227,18 +227,7 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 
 QString SQLGenerator::filterByPrimaryKey( const QEOrmModel &model) const 
 {
-	QStringList pkWhereClause;
-	const auto pkColumns = model.primaryKeyDef();
-
-	QString dbColName;
-	for( const auto& colDef : pkColumns) 
-	{
-		dbColName = colDef->dbColumnName;
-		pkWhereClause << QString(" %1 == :%2")
-			.arg( dbColName) .arg( dbColName);
-	}
-	
-	return pkWhereClause.join( QLatin1Literal(" AND "));
+	return filterByProperties(  model.primaryKeyDef());
 }
 		
 QString SQLGenerator::filterByForeignKey( const QEOrmForeignDef& fkDef) const 
@@ -251,6 +240,20 @@ QString SQLGenerator::filterByForeignKey( const QEOrmForeignDef& fkDef) const
 		filters << QString( "%1 = :%2").arg( fkList[i]->dbColumnName).arg( pkList[i]->dbColumnName);
 
 	return filters.join( QLatin1Literal( " AND "));
+}
+		
+QString SQLGenerator::filterByProperties( const QEOrmModel::QEOrmColumnDefList &colDefList) const
+{
+	QStringList pkWhereClause;
+	for( const auto& colDef : colDefList) 
+	{
+		const QString propName =  colDef->propertyName;
+		pkWhereClause << QString(" %1 == :%2")
+			.arg( colDef->dbColumnName ).arg( propName);
+	}
+	
+	return pkWhereClause.join( QLatin1Literal(" AND "));
+
 }
 
 QString SQLGenerator::generateExistsObjectOnDBStmt(const QObject *o, const QEOrmModel &model) const
@@ -334,6 +337,18 @@ QString SQLGenerator::selectionUsingForeignKey( const QEOrmForeignDef& fkDef, co
 
 	return stmt;
 }
+
+QString SQLGenerator::selectionUsingProperties( 
+				const QEOrmModel::QEOrmColumnDefList& defs,
+				const QEOrmModel& model) const
+{
+	QString stmt;
+	QTextStream os( &stmt);
+	os << projection( model) << QLatin1Literal( " WHERE ") << filterByProperties( defs);
+
+	return stmt;
+}
+
 
 QString SQLGenerator::projection( const QEOrmModel &model) const
 {

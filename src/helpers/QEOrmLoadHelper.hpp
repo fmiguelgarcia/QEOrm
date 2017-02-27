@@ -13,9 +13,11 @@ class QEOrmLoadHelper
 		void load( const QVariantList pk, const QEOrmModelShd& model,
 				QObject* target, const QEOrmContext& context) const;
 
+		static void load( QObject* target, QSqlQuery& query);
+
 	private:
-		void loadObjectFromRecord( QObject* target, const QEOrmModel& model, 
-				QSqlRecord& record) const;
+		static void loadObjectFromRecord( QObject* target, const QEOrmModel& model, 
+				QSqlRecord& record);
 
 		void loadOneToMany( QObject* target, const QEOrmModelShd& model,
 				const QEOrmContext& context ) const;
