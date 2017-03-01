@@ -24,4 +24,5 @@
  * $QE_END_LICENSE$
  */
 #include <QEOrmResultSet.hpp>
+using namespace std;
 

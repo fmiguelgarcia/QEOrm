@@ -65,9 +65,20 @@ class QEOrmResultSet
 				T* operator *() const
 				{ 
 					T* value = reinterpret_cast<T*>( T::staticMetaObject.newInstance( Q_ARG(QObject*, m_rs.m_parent)));
+					if( !value)
+						throwErrorOnCreateObject( & T::staticMetaObject);
+
 					m_rs.m_query.seek( position);
 					QEOrmLoadHelper::load( value, m_rs.m_query);
 					return value; 
+				}
+			private:
+				void throwErrorOnCreateObject( const QMetaObject* mo) const { 
+					throw std::runtime_error( 
+						QString( "QE ORM cannot create an object of type '%1'" 
+							"using the constructor %1:%1( QObject* parent)" )
+							.arg( mo->className())
+							.toStdString());
 				}
 
 			private:
