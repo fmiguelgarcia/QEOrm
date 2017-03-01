@@ -37,6 +37,9 @@ using namespace std;
 QE_USE_NAMESPACE
 
 namespace {
+
+	/// @brief Utility to use double check locking and create/insert objects
+	/// into a map.
 	template <typename V,  typename K, typename M, typename F>
 	V findOrCreateUsingDoubleCheckLocking( 
 		std::map<K,V>& container, 
@@ -59,6 +62,8 @@ namespace {
 		return itr->second;
 	}
 	
+	/// @brief Utility to use double check locking and create/insert objects
+	/// into a container.
 	template< typename C, typename K, typename M>
 	bool existsOrCreateUsingDoubleCheckeLocking( C &&container, K&& key, M&& mutex)
 	{
@@ -155,27 +160,6 @@ void QEOrm::save(QObject *const source) const
 	QEOrmSaveHelper helper( m_sqlGenerator.get());
 	helper.sqlHelper.isShowQueryEnabled = true;
 	helper.save( source, model, context);
-}
-
-map<QString, QVariant> whereClauseUsingForeignKey(
-		QObject * one,
-		const QEOrmForeignDefShd& fkDef)
-{
-	map<QString, QVariant> whereConditions;
-
-	QEOrmModelShd oneModel = QEOrm::instance().getModel( one->metaObject());
-	const auto& pk = oneModel->primaryKeyDef();
-	const auto& fk = fkDef->foreignKeys();
-
-	for( uint i = 0; i < pk.size(); ++i)
-	{
-		whereConditions.insert(
-				make_pair(
-					fk[i]->dbColumnName,
-					one->property( pk[i]->propertyName )));
-	}
-
-	return whereConditions;	
 }
 
 void QEOrm::checkAndCreateDBTable( const QEOrmModelShd& model) const

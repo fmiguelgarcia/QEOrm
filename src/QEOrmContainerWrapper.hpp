@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2017 Francisco Miguel García Rodríguez
+ * Copyright (C) 2017 francisco miguel garcia rodriguez  
  * Contact: http://www.dmious.com/qe/licensing/
  *
  * This file is part of the QE Common module of the QE Toolkit.
  *
- * $QE_BEGIN_LICENSE$
+ * $QE_BEGIN_LICENSE:LGPL21$
  * Commercial License Usage
  * Licensees holding valid commercial QE licenses may use this file in
  * accordance with the commercial license agreement provided with the
@@ -12,6 +12,17 @@
  * a written agreement between you and The Dmious Company. For licensing terms
  * and conditions see http://www.dmious.com/qe/terms-conditions. For further
  * information use the contact form at http://www.dmious.com/contact-us.
+ *
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free
+ * Software Foundation and appearing in the file LICENSE.LGPLv3 
+ * included in the packaging of this file. Please review the
+ * following information to ensure the GNU Lesser General Public License
+ * requirements will be met: https://www.gnu.org/licenses/lgpl.html and
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+ *
+ * $QE_END_LICENSE$
  */
 
 #pragma once
@@ -25,6 +36,8 @@ QE_BEGIN_NAMESPACE
 	Q_CLASSINFO( "property", "@QE.ORM.MAPPING.TYPE=OneToMany @QE.ORM.MAPPING.ENTITY=__typeof__(property)") \
 	QEOrmContainerWrapper< decltype( member ) > member##CW__ { member };
 
+/// @brief This wrapper help you to expose relation properties using
+/// QVariantList instead of a native container.
 template< class C>
 class QEOrmContainerWrapper
 {
@@ -36,7 +49,8 @@ class QEOrmContainerWrapper
 		QEOrmContainerWrapper(C& container) : m_container( container)
 		{}
 
-		// Read function
+		/// @brief This read function loads all elements of the native container
+		/// as a QVariantList.
 		QVariantList operator()() const
 		{
 			QVariantList list;
@@ -45,7 +59,8 @@ class QEOrmContainerWrapper
 			return list;
 		}
 
-		// Write function
+		/// @brief This write function stores all elements from QVariantList to
+		/// the native container. 
 		void operator()( const QVariantList& list)
 		{
 			using CItem = typename C::value_type;
@@ -56,6 +71,5 @@ class QEOrmContainerWrapper
 				m_container.push_back( *nativeItem);
 			}
 		}
-
 };
 QE_END_NAMESPACE

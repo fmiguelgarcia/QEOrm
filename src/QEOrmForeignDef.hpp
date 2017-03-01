@@ -30,18 +30,27 @@
 
 QE_BEGIN_NAMESPACE
 class QEOrmModel;
+
+/// @brief Foreign key definition.
 class QEOrmForeignDef
 {
 	public:
 		using QEOrmColumnDefList = std::vector<QEOrmColumnDefShd>;
 
+		/// @brief Constructor.
+		/// @param propertyName Property name.
+		/// @param reference Reference entity.
 		QEOrmForeignDef(
 			const QByteArray& propertyName,
 			const std::shared_ptr<QEOrmModel>& reference );
 
+		/// @return It returns the property name.
 		const QByteArray& propertyName() const noexcept;
+
+		/// @return It return the foreign key definition.
 		const QEOrmColumnDefList& foreignKeys() const noexcept;
 
+		/// @return It return the reference model.
 		std::shared_ptr<QEOrmModel> reference() const noexcept;
 
 	private:

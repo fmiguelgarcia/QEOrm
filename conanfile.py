@@ -8,7 +8,7 @@ class QEOrmConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     license = "https://www.gnu.org/licenses/lgpl-3.0-standalone.html"
     generators = "cmake"
-    url = "ssh://miguel@migroslinx.no-ip.org/home/miguel/git/QE/QEOrm"
+    url = "https://github.com/fmiguelgarcia/QEOrm.git"
     description = "ORM library based on Annotations"
 
     def source(self):
