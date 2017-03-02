@@ -1,4 +1,7 @@
 #include <helpers/QEOrmSqlHelper.hpp>
+#include <QDate>
+#include <QDateTime>
+#include <QTime>
 #include <QBitArray>
 #include <QTextStream>
 #include <QDataStream>
@@ -46,6 +49,14 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 				case QVariant::Type::ByteArray:
 					os << quotationMark << value.toByteArray().toHex() << quotationMark;
 					break;
+				case QVariant::Type::Date:
+					os << value.toDate().toString();
+					break;
+				case QVariant::Type::Time:
+					os << value.toTime().toString();
+					break;
+				case QVariant::Type::DateTime:
+					os << value.toDateTime().toString();
 				case QVariant::Type::String:
 					os << quotationMark << value.toString() << quotationMark;
 					break;
