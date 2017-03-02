@@ -54,3 +54,65 @@ QString SQliteGenerator::generatePrimaryKeyDefinition(const QEOrmModel &model) c
 
 QString SQliteGenerator::autoIncrementKeyWord() const
 { return QLatin1Literal("AUTOINCREMENT"); }
+
+
+QString SQliteGenerator::getDBType(const QMetaType::Type propertyType, const uint size) const 
+{
+	switch( propertyType)
+	{
+		case QMetaType::Bool:
+			return QLatin1Literal( "BOOLEAN");
+			
+		case QMetaType::QChar:
+		case QMetaType::Char:
+		case QMetaType::SChar:
+		case QMetaType::UChar:
+			return QLatin1Literal( "CHAR");
+			
+		case QMetaType::UShort:
+		case QMetaType::UInt:			
+		case QMetaType::ULong:
+		case QMetaType::ULongLong:
+			return QLatin1Literal( "INTEGER UNSIGNED");
+			
+		case QMetaType::Float:
+		case QMetaType::Double:
+			return QLatin1Literal( "REAL");
+
+		case QMetaType::QString:
+			if( size == 0)
+				return QLatin1Literal( "TEXT");
+			else
+				return QString( "VARCHAR(%1)").arg( size);
+			
+		case QMetaType::QByteArray:
+			if( size == 0)
+				return QLatin1Literal( "BLOB");
+			else
+				return QString( "VARBINARY(%1)").arg( size);
+			
+		case QMetaType::QTime:
+			return QLatin1Literal( "TIME");
+			
+		case QMetaType::QDate:
+			return QLatin1Literal( "DATE");
+			
+		case QMetaType::QDateTime:
+			return QLatin1Literal( "DATETIME");
+			
+		case QMetaType::QJsonValue:
+		case QMetaType::QJsonObject:
+		case QMetaType::QJsonArray:
+		case QMetaType::QJsonDocument:
+		case QMetaType::QUuid:
+			return QLatin1Literal( "TEXT");
+
+		case QMetaType::Short:
+		case QMetaType::Int:
+		case QMetaType::Long:
+		case QMetaType::LongLong:
+		default:
+			return QLatin1Literal( "INTEGER");
+	}
+}
+

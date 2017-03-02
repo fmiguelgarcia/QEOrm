@@ -201,7 +201,10 @@ QString SQLGenerator::getDBType(const QMetaType::Type propertyType, const uint s
 				return QString( "VARCHAR(%1)").arg( size);
 			
 		case QMetaType::QByteArray:
-			return QLatin1Literal( "BLOB");
+			if( size == 0)
+				return QLatin1Literal( "BLOB");
+			else
+				return QString( "VARBINARY(%1)").arg( size);
 			
 		case QMetaType::QTime:
 			return QLatin1Literal( "TIME");

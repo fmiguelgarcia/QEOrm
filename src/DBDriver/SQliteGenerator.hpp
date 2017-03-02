@@ -30,7 +30,9 @@
 class SQliteGenerator : public SQLGenerator
 {
 	protected:
-		virtual QString autoIncrementKeyWord() const override;
-		virtual QString generateColumnDefinition( const QEOrmColumnDef& column) const override;
-		virtual QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
+		QString autoIncrementKeyWord() const override;
+		QString generateColumnDefinition( const QEOrmColumnDef& column) const override;
+		QString generatePrimaryKeyDefinition( const QEOrmModel& model) const override;
+
+		QString getDBType(const QMetaType::Type propertyType, const uint size) const override;
 };
