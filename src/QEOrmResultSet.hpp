@@ -46,19 +46,20 @@ class QEOrmResultSet
 		{
 			public:
 				explicit iterator( QEOrmResultSet& rs, int pos)
-					: m_rs(rs){}
+					: m_rs(rs), m_position(pos){}
 
 				iterator& operator ++()
 				{
 					m_rs.m_query.next();
+					m_position = m_rs.m_query.at();
 			  		return *this;	  
 				}
 
 				bool operator ==( const iterator& other) const
-				{ return m_rs.m_query.at() == other.m_rs.m_query.at();}
+				{ return m_position == other.m_position; }
 
 				bool operator !=( const iterator& other) const
-				{ return m_rs.m_query.at() != other.m_rs.m_query.at();}
+				{ return m_position != other.m_position;}
 
 				/// @brief It creates an object and loads it using the current
 				/// result set position.
@@ -82,6 +83,7 @@ class QEOrmResultSet
 
 			private:
 				QEOrmResultSet& m_rs;
+				int m_position;
 		};
 
 		/// @brief Create an result set from a SQL query.
@@ -92,7 +94,7 @@ class QEOrmResultSet
 		{ m_query.next(); }
 
 		iterator begin() const
-		{ return iterator( const_cast<QEOrmResultSet&>(*this), 0); }
+		{ return iterator( const_cast<QEOrmResultSet&>(*this), m_query.at()); }
 
 		iterator end() const
 		{ return iterator( const_cast<QEOrmResultSet&>(*this), 
