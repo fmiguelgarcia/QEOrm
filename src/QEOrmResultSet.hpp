@@ -68,7 +68,9 @@ class QEOrmResultSet
 					if( !value)
 						throwErrorOnCreateObject( & T::staticMetaObject);
 
-					m_rs.m_query.seek( position);
+					if( m_rs.m_query.at() != position )
+						m_rs.m_query.seek( position);
+
 					QEOrmLoadHelper::load( value, m_rs.m_query);
 					return value; 
 				}
@@ -91,7 +93,7 @@ class QEOrmResultSet
 		/// @param parent It will be used as a parent for each created object.
 		explicit QEOrmResultSet( QSqlQuery sql, QObject* parent = nullptr) 
 			: m_query( sql), m_parent( parent)
-		{ m_query.first(); }
+		{ m_query.next(); }
 
 		iterator begin() const
 		{ return iterator( const_cast<QEOrmResultSet&>(*this), 0); }
