@@ -1,5 +1,7 @@
 #include <helpers/QEOrmSqlHelper.hpp>
+#include <QBitArray>
 #include <QTextStream>
+#include <QDataStream>
 #include <QSqlError>
 #include <QDebug>
 
@@ -11,6 +13,10 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 {
 	if( isShowQueryEnabled )
 	{
+		const QChar quotationMark('\'');
+		const QChar openKey('{');
+		const QChar closeKey( '}');
+
 		QString message;
 		QTextStream os( &message);
 		const QMap<QString, QVariant> boundValues = query.boundValues();
@@ -19,8 +25,33 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 			<< QLatin1Literal( "   + query: ") << query.executedQuery() << endl
 			<< QLatin1Literal( "   + parameters: { ");
 		for( const QString boundKey : boundValues.keys())
-			os << QLatin1Char('{') << boundKey << QLatin1Literal(", ") << boundValues[boundKey].toString() << QLatin1Literal("} ");
-		os << QLatin1Char('}') << endl;
+		{
+			os << openKey << boundKey << QLatin1Literal(", ");
+
+			const QVariant value = boundValues[boundKey];
+			const QVariant::Type valueType = value.type();
+			switch( valueType )
+			{
+				case QVariant::Type::BitArray:
+				{
+					QByteArray buffer;
+					QDataStream in( buffer);
+					in << value.toBitArray();
+					os << quotationMark << buffer.toHex()<< quotationMark;
+				  	break;
+				}	
+				case QVariant::Type::ByteArray:
+					os << quotationMark << value.toByteArray().toHex() << quotationMark;
+					break;
+				case QVariant::Type::String:
+					os << quotationMark << value.toString() << quotationMark;
+					break;
+				default:
+			 		os << value.toString();
+			}
+			os << closeKey;
+		}
+		os << closeKey << endl;
 
 		qDebug() << message;
 	}
