@@ -28,6 +28,7 @@
 #include <QEOrm.hpp>
 #include <QTextStream>
 #include <QDateTime>
+#include <QStringBuilder>
 #include <algorithm>
 
 using namespace std;
@@ -249,11 +250,7 @@ QString SQLGenerator::filterByProperties( const QEOrmModel::QEOrmColumnDefList &
 {
 	QStringList pkWhereClause;
 	for( const auto& colDef : colDefList) 
-	{
-		const QString propName =  colDef->propertyName;
-		pkWhereClause << QString(" %1 == :%2")
-			.arg( colDef->dbColumnName ).arg( propName);
-	}
+		pkWhereClause << ( colDef->dbColumnName % QLatin1Literal(" = :") % colDef->dbColumnName); 
 	
 	return pkWhereClause.join( QLatin1Literal(" AND "));
 
@@ -279,16 +276,11 @@ QString SQLGenerator::generateInsertObjectStmt( const QObject *o, const QEOrmMod
 	{
 		if( colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
 		{
-			columnNames << colDef->dbColumnName;
-			values << QString( ":%1").arg( colDef->dbColumnName);
+			const QString & dbColName = colDef->dbColumnName;
+			columnNames << dbColName;
+			values << QChar(':') % dbColName;
 		}
 	}
-	for( const auto& fkDef : model.referencesManyToOneDefs())
-		for( const auto& fkColDef : fkDef->foreignKeys())
-		{
-			columnNames << fkColDef->dbColumnName;
-			values << QString( ":%1").arg( fkColDef->dbColumnName);
-		}
 	
 	QString stmt;
 	QTextStream os( &stmt);
@@ -306,12 +298,10 @@ QString SQLGenerator::generateUpdateObjectStmt( const QObject *o, const QEOrmMod
 	QStringList setExpList;
 	for( const auto& colDef: model.columnDefs())
 	{
-		if( !colDef->isPartOfPrimaryKey)
+		if( !colDef->isPartOfPrimaryKey &&
+			 colDef->mappingType == QEOrmColumnDef::MappingType::NoMappingType)
 		{
-			// const QVariant value = o->property( col.propertyName().constData());
-			setExpList << QString("%1 = :%2")
-				.arg( colDef->dbColumnName)
-				.arg( colDef->dbColumnName);
+			setExpList << colDef->dbColumnName % QLatin1Literal( " = :") % colDef->dbColumnName;
 		}
 	}
 	

@@ -101,7 +101,30 @@ void QEOrmTest::findTest()
 	}
 
 	QVERIFY( count > 0);
+}
 
+void QEOrmTest::updateTest()
+{
+	Person p1;
+	p1.name = "UpdateTestUser";
+	p1.begin = QDateTime::currentDateTime();
+
+	ContactInfo ci1, ci2;
+	ci1.email = "info@dmious.com";
+	ci1.phone = "091";
+	ci2.email = "google@google.com";
+	ci2.phone = "555";
+	p1.setContactInfoList( {ci1, ci2});
+
+	QEOrm::instance().save( &p1);
+
+	auto ciList = p1.contactInfoList();
+	QVERIFY( ! ciList.empty());
+
+	ciList.push_back( ContactInfo( nullptr, 0, "xxx@google.com", "666")); 
+	p1.setContactInfoList( ciList);
+
+	QEOrm::instance().save( &p1);
 }
 
 

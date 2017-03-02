@@ -20,8 +20,8 @@ namespace {
     const static int ContactInfoId = qRegisterMetaType<ContactInfo*>();
 }
 
-ContactInfo::ContactInfo( QObject* parent)
-	: QObject(parent)
+ContactInfo::ContactInfo( QObject* parent, int id, QString email, QString phone)
+	: QObject(parent), id(id), email( email), phone( phone)
 {}
 		
 ContactInfo::ContactInfo( const ContactInfo& other) noexcept

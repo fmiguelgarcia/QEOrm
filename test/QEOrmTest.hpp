@@ -29,4 +29,5 @@ class QEOrmTest : public QObject
 		
 		void checkTableCreation();
 		void findTest();
+		void updateTest();
 };

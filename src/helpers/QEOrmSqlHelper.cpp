@@ -32,6 +32,9 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 			const QVariant::Type valueType = value.type();
 			switch( valueType )
 			{
+				case QMetaType::UnknownType:
+					os << QLatin1Literal("null");
+					break;
 				case QVariant::Type::BitArray:
 				{
 					QByteArray buffer;

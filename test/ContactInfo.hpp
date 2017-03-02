@@ -30,7 +30,8 @@ class ContactInfo: public QObject
 	Q_CLASSINFO( "phone", "@QEOrm.maxLenght=32")
 	
 	public:
-		Q_INVOKABLE explicit ContactInfo( QObject* parent = nullptr);
+		Q_INVOKABLE explicit ContactInfo( QObject* parent = nullptr, int id = 0, 
+				QString email = QString() , QString phone = QString() );
 		ContactInfo( const ContactInfo& other) noexcept;
 		ContactInfo& operator= ( const ContactInfo& other) noexcept;
 
