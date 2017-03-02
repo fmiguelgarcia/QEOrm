@@ -46,19 +46,19 @@ class QEOrmResultSet
 		{
 			public:
 				explicit iterator( QEOrmResultSet& rs, int pos)
-					: m_rs(rs), position(pos) {}
+					: m_rs(rs){}
 
 				iterator& operator ++()
 				{
-				 	position = ( m_rs.m_query.next() ) ? (position +1) : (-1);
+					m_rs.m_query.next();
 			  		return *this;	  
 				}
 
 				bool operator ==( const iterator& other) const
-				{ return position == other.position; }
+				{ return m_rs.m_query.at() == other.m_rs.m_query.at();}
 
 				bool operator !=( const iterator& other) const
-				{ return position != other.position; }
+				{ return m_rs.m_query.at() != other.m_rs.m_query.at();}
 
 				/// @brief It creates an object and loads it using the current
 				/// result set position.
@@ -67,9 +67,6 @@ class QEOrmResultSet
 					T* value = reinterpret_cast<T*>( T::staticMetaObject.newInstance( Q_ARG(QObject*, m_rs.m_parent)));
 					if( !value)
 						throwErrorOnCreateObject( & T::staticMetaObject);
-
-					if( m_rs.m_query.at() != position )
-						m_rs.m_query.seek( position);
 
 					QEOrmLoadHelper::load( value, m_rs.m_query);
 					return value; 
@@ -85,7 +82,6 @@ class QEOrmResultSet
 
 			private:
 				QEOrmResultSet& m_rs;
-				int position;
 		};
 
 		/// @brief Create an result set from a SQL query.
@@ -99,7 +95,8 @@ class QEOrmResultSet
 		{ return iterator( const_cast<QEOrmResultSet&>(*this), 0); }
 
 		iterator end() const
-		{ return iterator( const_cast<QEOrmResultSet&>(*this), -1); }
+		{ return iterator( const_cast<QEOrmResultSet&>(*this), 
+				static_cast<int>( QSql::AfterLastRow));}
 
 	protected:
 		QSqlQuery m_query;	///< Query.
