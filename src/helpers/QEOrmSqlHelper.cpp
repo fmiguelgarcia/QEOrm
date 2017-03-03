@@ -50,13 +50,14 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 					os << quotationMark << value.toByteArray().toHex() << quotationMark;
 					break;
 				case QVariant::Type::Date:
-					os << value.toDate().toString();
+					os << value.toDate().toString( Qt::ISODate);
 					break;
 				case QVariant::Type::Time:
-					os << value.toTime().toString();
+					os << value.toTime().toString( Qt::ISODate);
 					break;
 				case QVariant::Type::DateTime:
-					os << value.toDateTime().toString();
+					os << value.toDateTime().toString( Qt::ISODate);
+					break;
 				case QVariant::Type::String:
 					os << quotationMark << value.toString() << quotationMark;
 					break;
