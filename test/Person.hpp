@@ -54,7 +54,7 @@ class Person
 
 		
 		std::vector<ContactInfo> m_contactInfoList;
-		QEOrmContainerWrapper< decltype(m_contactInfoList) > m_ContactWrapper{m_contactInfoList};
+		QEContainerWrapper< decltype(m_contactInfoList) > m_ContactWrapper{m_contactInfoList};
 		
 		//QE_ORM_MAP_ONE_TO_MANY( fk2, m_fkClass2)
 };

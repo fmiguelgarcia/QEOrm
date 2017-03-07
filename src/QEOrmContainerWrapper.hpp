@@ -26,50 +26,13 @@
  */
 
 #pragma once
-#include <QECommon/QEGlobal.hpp>
-#include <QVariant>
+#include <QEContainerWrapper.hpp>
 
 QE_BEGIN_NAMESPACE
 
 #define QE_ORM_MAP_ONE_TO_MANY( property, member ) \
 	Q_PROPERTY( QVariantList property READ member##CW__ WRITE member##CW__ ) \
 	Q_CLASSINFO( "property", "@QE.ORM.MAPPING.TYPE=OneToMany @QE.ORM.MAPPING.ENTITY=__typeof__(property)") \
-	QEOrmContainerWrapper< decltype( member ) > member##CW__ { member };
+	QEContainerWrapper< decltype( member ) > member##CW__ { member };
 
-/// @brief This wrapper help you to expose relation properties using
-/// QVariantList instead of a native container.
-template< class C>
-class QEOrmContainerWrapper
-{
-	private:
-		C& m_container;
-		using CValueType = typename C::value_type;
-		
-	public: 
-		QEOrmContainerWrapper(C& container) : m_container( container)
-		{}
-
-		/// @brief This read function loads all elements of the native container
-		/// as a QVariantList.
-		QVariantList operator()() const
-		{
-			QVariantList list;
-			for( CValueType& item : m_container)
-				list << QVariant::fromValue( std::addressof(item));
-			return list;
-		}
-
-		/// @brief This write function stores all elements from QVariantList to
-		/// the native container. 
-		void operator()( const QVariantList& list)
-		{
-			using CItem = typename C::value_type;
-			m_container.clear();
-			for( const QVariant &item : list)
-			{
-				CItem * nativeItem = item.value<CItem*>();
-				m_container.push_back( *nativeItem);
-			}
-		}
-};
 QE_END_NAMESPACE
