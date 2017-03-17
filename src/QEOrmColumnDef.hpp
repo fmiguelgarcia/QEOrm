@@ -27,11 +27,13 @@
 
 #pragma once
 #include <QECommon/QEGlobal.hpp>
+#include <QLoggingCategory>
 #include <QString>
 #include <QByteArray>
 #include <QVariant>
 #include <memory>
 
+Q_DECLARE_LOGGING_CATEGORY( QeOrmColumnDef)
 QE_BEGIN_NAMESPACE 
 
 class QEAnnotationModel;

@@ -1,7 +1,9 @@
 #pragma once
 #include <helpers/QEOrmSqlHelper.hpp>
 #include <utilities/QEOrmContext.hpp>
+#include <QLoggingCategory>
 
+Q_DECLARE_LOGGING_CATEGORY( QeOrmHelperSave)
 QE_BEGIN_NAMESPACE
 
 class SQLGenerator;

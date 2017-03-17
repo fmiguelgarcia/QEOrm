@@ -6,11 +6,10 @@
 #include <QTextStream>
 #include <QDataStream>
 #include <QSqlError>
-#include <QDebug>
 
 QE_USE_NAMESPACE
 using namespace std;
-
+Q_LOGGING_CATEGORY( QeOrmHelperSql, "com.dmious.qe.orm.helper.sql")
 
 void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 {
@@ -68,7 +67,7 @@ void QEOrmSqlHelper::showQuery( QSqlQuery& query) const
 		}
 		os << closeKey << endl;
 
-		qDebug() << message;
+		qCDebug( QeOrmHelperSql) << message;
 	}
 }
 

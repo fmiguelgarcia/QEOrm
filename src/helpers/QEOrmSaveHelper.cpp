@@ -1,10 +1,10 @@
 #include <helpers/QEOrmSaveHelper.hpp>
 #include <utilities/QEOrmContext.hpp>
 #include <QEOrm.hpp>
-#include <QDebug>
 
 QE_USE_NAMESPACE
 using namespace std;
+Q_LOGGING_CATEGORY( QeOrmHelperSave, "com.dmious.qe.orm.helper.save")
 
 QEOrmSaveHelper::QEOrmSaveHelper( SQLGenerator* sqlGen)
 	: m_sqlGenerator( sqlGen)
@@ -93,7 +93,9 @@ void QEOrmSaveHelper::saveOneToMany(QObject *const source,
 					save( refItem, refModel, context);
 				}
 			}
-			qDebug() << "Property " << propertyName << " has " << values.size() << " items.";
+			qCDebug( QeOrmHelperSave) 
+				<< "Property " << propertyName << " has " 
+				<< values.size() << " items.";
 		}
 	}
 }

@@ -27,12 +27,13 @@
 
 #include "QEOrmColumnDef.hpp"
 #include <QEOrmModel.hpp>
-#include <QDebug>
 #include <QMetaEnum>
 #include <utility>
 
 QE_USE_NAMESPACE 
 using namespace std;
+Q_LOGGING_CATEGORY( QeOrmColumnDef, "com.dmious.qe.orm.columnDef")
+
 namespace {
 	inline QString ANN_AUTO_INCREMENT() 
 	{ return QLatin1Literal( "@QEOrm.isAutoIncrement");}
@@ -69,7 +70,7 @@ QEOrmColumnDef::QEOrmColumnDef( const QByteArray &property, const int type,
 	try {
 		decodeMapping( model);
 	} catch ( std::runtime_error &error){
-		qWarning() << error.what();
+		qCWarning( QeOrmColumnDef) << error.what();
 		mappingType = MappingType::NoMappingType;
 	}
 

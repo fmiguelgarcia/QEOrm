@@ -1,9 +1,11 @@
 #pragma once
 #include <QEOrmModel.hpp>
+#include <QLoggingCategory>
 #include <QSqlQuery>
 #include <QVariantList>
 #include <stack>
 
+Q_DECLARE_LOGGING_CATEGORY( QeOrmHelperSql)
 QE_BEGIN_NAMESPACE
 
 /// @brief It is a helper to execute SQL statements in @c QEOrm.
