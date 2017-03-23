@@ -19,15 +19,11 @@
 
 class QEOrmTest : public QObject
 {
-		Q_OBJECT
-	private slots:
-		void initTestCase();
-		void cleanupTestCase();
+	Q_OBJECT
+	public:
+		QEOrmTest( QObject* parent = nullptr);
 
-		void init();
-		void cleanup();
-		
-		void checkTableCreation();
-		void findTest();
-		void updateTest();
+	private slots:
+		void checkSaveAutoIncrement();
+		void checkSaveReferences();
 };

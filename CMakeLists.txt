@@ -2,5 +2,5 @@ cmake_minimum_required ( VERSION 3.5)
 project (QEOrm)
 enable_testing()
 
-ADD_SUBDIRECTORY (src)
-ADD_SUBDIRECTORY (test)
+add_subdirectory( src/qe/orm)
+add_subdirectory( test)

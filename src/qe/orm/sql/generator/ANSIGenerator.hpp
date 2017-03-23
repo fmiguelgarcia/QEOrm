@@ -1,0 +1,128 @@
+/*
+ * Copyright (C) 2017 Francisco Miguel García Rodríguez
+ * Contact: http://www.dmious.com/qe/licensing/
+ *
+ * This file is part of the QE Common module of the QE Toolkit.
+ *
+ * $QE_BEGIN_LICENSE$
+ * Commercial License Usage
+ * Licensees holding valid commercial QE licenses may use this file in
+ * accordance with the commercial license agreement provided with the
+ * Software or, alternatively, in accordance with the terms contained in
+ * a written agreement between you and The Dmious Company. For licensing terms
+ * and conditions see http://www.dmious.com/qe/terms-conditions. For further
+ * information use the contact form at http://www.dmious.com/contact-us.
+ * 
+ * GNU Lesser General Public License Usage
+ * Alternatively, this file may be used under the terms of the GNU Lesser
+ * General Public License version 3 as published by the Free Software
+ * Foundation and appearing in the file LICENSE.LGPL3 included in the
+ * packaging of this file. Please review the following information to
+ * ensure the GNU Lesser General Public License version 3 requirements
+ * will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
+ *
+ * $QE_END_LICENSE$
+ */
+
+#pragma once
+#include <qe/entity/Types.hpp>
+#include <QString>
+#include <QVariantList>
+#include <vector>
+#include <memory>
+
+namespace qe { namespace orm { namespace sql {
+
+	/// @brief This class generates all SQL statement required by QEOrm. 
+	///
+	/// It SHOULD use ANSI SQL, in order to be a general SQL generator. 
+	/// @todo Add table version as a comment or other table, add version to CLASSINFO
+	class ANSIGenerator
+	{
+		public:
+			/// @brief It generates a SQL statement to check if an object exits
+			/// in database. 
+			virtual QString existsStatement( const qe::entity::Model& model) const;
+
+			/// @brief It generates an SQL statement to update. 
+			virtual QString updateStatement( const qe::entity::Model& model) const;
+
+			/// @brief It generates an SQL statement to insert @p o in 
+			/// database using @p model.
+			virtual QString insertStatement( const qe::entity::Model& model) const;
+
+			/// @brief It creates the SQL statement for @p model.
+			virtual QString createTableIfNotExistsStatement( 
+					const qe::entity::Model& model) const;
+
+			/// @brief It generates an SQL statement to load an object from @p model, 
+			/// using @p pk as values for primary key.
+			virtual QString selectionUsingPrimaryKey( 
+					const qe::entity::Model& model) const;
+	
+			/// @brief It creates an SQL statement to load objects using @p fk foreign
+			/// key in model @p model.
+			virtual QString selectionUsingForeignKey( const qe::entity::Model& model, 
+					const qe::entity::RelationDef& fkDef) const;
+
+		protected:
+			/// @brief It return the projection (SELECT clause) for 
+			/// specific model
+			virtual QString projection( const qe::entity::Model &model) const;
+
+			/// @brief It generates the SQL partial WHERE statement to 
+			/// locate an object using its primary key into @p model.
+			virtual QString primaryKeyWhereClausure( 
+					const qe::entity::Model &model) const;
+
+			/// @brief It generates the SQL partial WHERE statement to
+			/// locate an object using a foreign key.
+			virtual QString foreignKeyWhereClausure( 
+					const qe::entity::RelationDef& fkDef) const;
+
+			virtual QString whereClausure( 
+					const qe::entity::EntityDefList &colDefList) const;
+
+			/// @brief How to defined a column as an Auto-Increment.
+			/// 
+			/// Different database engines define this in several ways. 
+			/// Overloaded generators should override this function.
+			virtual QString autoIncrementKeyWord() const;
+
+			/// @brief It generates the SQL partial statement for the 
+			/// column definition @p column. 
+			virtual QString makeColumnDefinition( 
+					const qe::entity::EntityDef& column) const;
+			
+			/// @brief It generates the SQL partial statement for primary.
+			virtual QString makePrimaryKeyDefinition(
+					const entity::Model &model) const;
+		
+			/// @brief It generates the SQL partial statement for foreign keys.
+			virtual QString makeForeignKeyDefinition( 
+					const entity::Model& model) const;
+
+			/// @brief It maps the C++ type @p propertyType into a database type.
+			/// @param size In case of strings, you can limit the 
+			/// number of characters. By default it is 0, which means no 
+			/// limitation at all.
+			virtual QString databaseType( const int propertyType, 
+					const uint size) const;
+#if 0
+		public:
+
+			virtual QString selectionUsingPrimaryKey( 
+					const QVariantList& pk, 
+					const Model &model) const;
+
+			virtual QString selectionUsingForeignKey( 
+					const ForeignKeyDef& fk, 
+					const Model& model) const;
+
+			virtual QString selectionUsingProperties( 
+					const ColumnDefList& defs,
+					const Model& model) const;
+
+#endif
+	};
+}}}

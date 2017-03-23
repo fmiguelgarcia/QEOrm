@@ -24,107 +24,86 @@
  * $QE_END_LICENSE$
  */
 #include "QEOrmTest.hpp"
-#include "Person.hpp"
-#include <QEOrm.hpp>
+#include "entity/book.hpp"
+#include <qe/orm/QEOrm.hpp>
+#include <qe/common/Exception.hpp>
+
 #include <QSqlDatabase>
+#include <QCryptographicHash>
 #include <QtTest>
 
+using namespace qe::orm;
+using namespace qe::common;
 using namespace std;
+
 QTEST_MAIN(QEOrmTest);
 
-void QEOrmTest::initTestCase()
+QEOrmTest::QEOrmTest( QObject* parent)
+	: QObject( parent)
 {
 	// Called before the first testfunction is executed
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
-//	db.setDatabaseName(":memory:");
+
+	//	db.setDatabaseName(":memory:");
 	db.setDatabaseName("/tmp/QEOrmTest.db");
 	QVERIFY( db.open() );
 }
 
-void QEOrmTest::cleanupTestCase()
+void QEOrmTest::checkSaveAutoIncrement()
 {
-	// Called after the last testfunction was executed
-}
-
-void QEOrmTest::init()
-{
-	// Called before each testfunction is executed
-}
-
-void QEOrmTest::cleanup()
-{
-	// Called after every testfunction
-}
-
-void QEOrmTest::checkTableCreation()
-{
-	Person p1, p2;
-	p1.name = "Miguel";
-	p1.begin = QDateTime::currentDateTime();
-
-	ContactInfo ci1, ci2;
-	ci1.email = "info@dmious.com";
-	ci1.phone = "091";
-	ci2.email = "google@google.com";
-	ci2.phone = "555";
-
-	p1.setContactInfoList( {ci1, ci2});
-
-	QEOrm::instance().save( &p1);
-	QEOrm::instance().load( { p1.id}, &p2);
+	QSKIP( "Temporary skipped");
 	
-	QVERIFY( p1 == p2);
+	Book book;
+	book.title = "Effective Modern C++";
+	book.author = "Scott Meyers";
+	book.pages = 303;
+  	book.binSignature = QCryptographicHash::hash( book.title.toUtf8(),
+		QCryptographicHash::Sha256);	
+	
+	QEOrm::instance().save( &book);
+	QVERIFY( book.id != 0);
 }
 
-void QEOrmTest::findTest()
+void QEOrmTest::checkSaveReferences()
 {
-	int count = 0;
-	Person p1;
-	p1.name = "Miguel";
-	p1.begin = QDateTime::currentDateTime();
-	p1.end = p1.begin.addMSecs( 1000 * 60 );
+	Book book;
+	book.title = "Effective Modern C++";
+	book.author = "Scott Meyers";
+	book.pages = 303;
+  	book.binSignature = QCryptographicHash::hash( book.title.toUtf8(),
+		QCryptographicHash::Sha256);
 
-	QEOrm::instance().save( &p1);
+	// Save book to get its id.
+	QEOrm::instance().save( &book);
+	QVERIFY( book.id != 0);
 
-	auto rs = QEOrm::instance().findEqual<Person>( {{QString("name"), "Miguel"}});
-	auto itr = begin( rs);
-	while( itr != end(rs))
-	{
-		Person *pFound = *itr;
-		if( pFound)
-		{
-			QVERIFY( pFound->name == "Miguel");
-			++count;	
-		}
-		++itr;
-	}
+	// Chapters don't use autoincrement id, so we generate them from book.id
+	Chapter ch1( nullptr, "Deducing Types");
+	ch1.text = "- During template type deduction, arguments that are references "
+		"are treated as non-references, i.e., their reference-ness is ignored."
+		"\n - When deducing types for universal reference parameters, lvalue "
+		"arguments get special treatment.";
+	ch1.id = 1 + book.id * 1000;
+	ch1.setObjectName( "Chapter 1");
+	
+	Chapter ch2( nullptr, "Understand auto type deduction");
+	ch2.text = " - auto type deduction is usually the same as template type "
+		"deduction, but auto type  deduction  assumes  that  a  braced  "
+		"initializer  represents  a  std::initializer_list, and template type"
+		"deduction doesn’t.\n -  auto in  a  function  return  type  or  a "
+		"lambda  parameter  implies  template  type deduction, not auto type "
+		"deduction.";
+	ch2.id = 2 + book.id * 1000;
 
-	QVERIFY( count > 0);
-}
-
-void QEOrmTest::updateTest()
-{
-	Person p1;
-	p1.name = "UpdateTestUser";
-	p1.begin = QDateTime::currentDateTime();
-
-	ContactInfo ci1, ci2;
-	ci1.email = "info@dmious.com";
-	ci1.phone = "091";
-	ci2.email = "google@google.com";
-	ci2.phone = "555";
-	p1.setContactInfoList( {ci1, ci2});
-
-	QEOrm::instance().save( &p1);
-
-	auto ciList = p1.contactInfoList();
-	QVERIFY( ! ciList.empty());
-
-	ciList.push_back( ContactInfo( nullptr, 0, "xxx@google.com", "666")); 
-	p1.setContactInfoList( ciList);
-
-	QEOrm::instance().save( &p1);
+	// Update book and save.
+	book.chapters = { ch1, ch2};
+	QEOrm::instance().save( &book);
+	
+	Book loadedBook;
+	QEOrm::instance().load( QVariantList{ book.id }, &loadedBook);
+	
+	QVERIFY( book == loadedBook);
 }
 
 
