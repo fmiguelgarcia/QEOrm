@@ -33,18 +33,29 @@
 
 namespace qe { namespace orm { namespace sql 
 {
-	Q_DECLARE_LOGGING_CATEGORY( lcSQLHelper);
-	class ANSIGenerator;
-	class SQLHelper
+	Q_DECLARE_LOGGING_CATEGORY( lcExecutor);
+	class Generator;
+	class Executor
 	{
 		public:
 			/// @param connName SQL database connection name. If it is empty, 
 			/// the default connection will be used.
-			explicit SQLHelper( const QString& connName = QString());
-			SQLHelper( const SQLHelper& helper);
+			explicit Executor( const QString& connName = QString());
+			Executor( const Executor& helper);
 
-			virtual ~SQLHelper();
+			virtual ~Executor();
+			int dbmsType() const;
 
+			QSqlQuery execute( const QString& stmt, const QVariantList& params,
+					const QString& errorMsg) const;
+			QSqlQuery execute( QSqlQuery& query, const QString& errorMsg) const;
+			QSqlQuery execute( qe::entity::ObjectContext& context, 
+					const qe::entity::Model& model,
+					const QString& stmt, const QObject* source, 
+					const QString& errorMsg) const;
+
+#if 0
+			
 			bool exitsObject( const qe::entity::Model& model, 
 					const QVariantList& pkValues) const;
 
@@ -63,21 +74,14 @@ namespace qe { namespace orm { namespace sql
 				qe::entity::ObjectContext& context,
 				const qe::entity::Model& model, 
 				const qe::entity::RelationDef& fkDef, const QObject* source) const;
+#endif
 
 		protected:
-			QSqlQuery execute( const QString& stmt, const QVariantList& params,
-					const QString& errorMsg) const;
-			QSqlQuery execute( QSqlQuery& query, const QString& errorMsg) const;
-			QSqlQuery execute( qe::entity::ObjectContext& context, 
-					const qe::entity::Model& model,
-					const QString& stmt, const QObject* source, 
-					const QString& errorMsg) const;
-
 			void logQuery( QSqlQuery& query) const;
 
 		private:
 			QString m_connName;
-			std::shared_ptr<ANSIGenerator> m_sqlStmtBuilder;
+			int m_dbmsType;
 	};
 }}}
 

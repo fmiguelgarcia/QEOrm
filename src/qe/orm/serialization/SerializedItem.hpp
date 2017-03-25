@@ -25,7 +25,7 @@
  * $QE_END_LICENSE$
  */
 #pragma once
-#include <qe/orm/sql/SqlHelper.hpp>
+#include <qe/orm/sql/Executor.hpp>
 #include <qe/entity/serialization/AbstractSerializedItem.hpp>
 
 namespace qe { namespace orm { 
@@ -35,19 +35,19 @@ namespace qe { namespace orm {
 	{
 		public:
 			explicit SerializedItem( 
-				const sql::SQLHelper& helper = sql::SQLHelper());
+				const sql::Executor& helper = sql::Executor());
 	
 			SerializedItem(
 				QVariantList&& pkValues,
-				sql::SQLHelper&& helper = sql::SQLHelper());
+				sql::Executor&& helper = sql::Executor());
 		
 			SerializedItem(
 				const QVariantList& pkValues,
-				const sql::SQLHelper& helper = sql::SQLHelper());
+				const sql::Executor& helper = sql::Executor());
 
-			const sql::SQLHelper& sqlHelper() const noexcept;
+			const sql::Executor& executor() const noexcept;
 
 		private:
-			sql::SQLHelper m_sqlHelper;
+			sql::Executor m_helper;
 	};
 }}

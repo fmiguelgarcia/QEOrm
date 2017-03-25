@@ -25,14 +25,18 @@
  */
 #include "SaveHelper.hpp"
 #include "serialization/SerializedItem.hpp"
+#include "sql/GeneratorRepository.hpp"
+#include "sql/generator/AbstractGenerator.hpp"
 #include <qe/common/Exception.hpp>
 #include <qe/entity/ModelRepository.hpp>
 #include <qe/entity/Model.hpp>
 #include <qe/entity/EntityDef.hpp>
 
 #include <QVariantList>
+#include <QStringBuilder>
 #include <iterator>
 
+using namespace qe::orm::sql;
 using namespace qe::orm;
 using namespace qe::entity;
 using namespace qe::common;
@@ -60,19 +64,47 @@ namespace {
 				pkValues << value;
 		}
 
-		return target->sqlHelper().exitsObject( model, pkValues);
+		// Execute sql
+		const sql::Executor& sqlExec = target->executor();
+		const QString stmt = GeneratorRepository::instance()
+			.generator( sqlExec.dbmsType())->existsStatement( model);
+
+		QSqlQuery query = sqlExec.execute( stmt, pkValues, 
+			QStringLiteral( "QE Orm cannot check existence of object in database."));
+
+		return query.next();
 	}
 
 	void update( ObjectContext& context, const Model &model, 
 			const QObject *source, SerializedItem* const target)
 	{
-		target->sqlHelper().update( context, model, source);
+		const sql::Executor& sqlExec = target->executor();
+		const QString stmt = GeneratorRepository::instance()
+			.generator( sqlExec.dbmsType())->updateStatement( model);
+
+		sqlExec.execute( context, model, stmt, source, 
+			QStringLiteral( "QE Orm cannot update an object"));
 	}
 
 	void insert( ObjectContext& context, const Model &model, QObject *source, 
 			qe::orm::SerializedItem* const target)
 	{
-		target->sqlHelper().insert( context, model, source);
+		// 1. Insert
+		const sql::Executor& sqlExec = target->executor();
+		const QString stmt = GeneratorRepository::instance()
+			.generator( sqlExec.dbmsType())->insertStatement( model);
+
+		QSqlQuery ds = sqlExec.execute( context, model, stmt, source, 
+			QStringLiteral( "QE Orm cannot insert an object"));
+
+		// 2. Get autoincrement value if it exists.
+		const QVariant insertId = ds.lastInsertId();
+		if( ! insertId.isNull())
+		{
+			const auto eDef = model.findEntityDef( Model::findByAutoIncrement{});
+			if( eDef)
+				source->setProperty( eDef->propertyName(), insertId);
+		}
 	}
 }
 
@@ -132,8 +164,16 @@ QStringList SaveHelper::createTables( const ModelShd model,
 	QStringList tables;
 	tables << model->name();
 
-	target->sqlHelper().createTableIfNotExist( *model);
-	
+	// Create table
+	const sql::Executor& sqlExec = target->executor();
+	const QString stmt = GeneratorRepository::instance()
+			.generator( sqlExec.dbmsType())->createTableIfNotExistsStatement( *model);
+
+	sqlExec.execute( stmt, QVariantList{}, 
+			QStringLiteral("QE Orm cannot create the table ")
+			% model->name());
+
+	// Find relations.
 	for( const auto& colDef: model->entityDefs())
 	{
 		if( colDef->mappingType() == EntityDef::MappingType::OneToMany)

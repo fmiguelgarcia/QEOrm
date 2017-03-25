@@ -25,7 +25,10 @@
  * $QE_END_LICENSE$
  */
 #include "LoadHelper.hpp"
+#include "sql/GeneratorRepository.hpp"
+#include "sql/generator/AbstractGenerator.hpp"
 #include "serialization/SerializedItem.hpp"
+
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>
 #include <qe/entity/EntityDef.hpp>
@@ -39,12 +42,33 @@
 using namespace qe::common;
 using namespace qe::entity;
 using namespace qe::orm;
+using namespace std;
 
 void LoadHelper::load( ObjectContext& context, const ModelShd& model, 
 	const SerializedItem *const source, QObject *const target) const
 {
 	const QVariantList & pk = source->primaryKey();
-	QSqlQuery ds = source->sqlHelper().loadUsingPrimaryKey( *model, pk);
+
+	const sql::Executor& sqlExec = source->executor();
+	sql::AbstractGenerator* stmtMaker = sql::GeneratorRepository::instance().generator( 
+		sqlExec.dbmsType());
+	const QString stmt = stmtMaker->selectionUsingPrimaryKey( *model);
+
+	QSqlQuery ds = sqlExec.execute( stmt, pk,  
+			QStringLiteral( "QE Orm cannot fetch an object."));
+
+	if( !ds.next())
+	{
+		QStringList pkStrValues;
+		transform( begin(pk), end(pk), back_inserter(pkStrValues), 
+			[]( const QVariant& var){ return var.toString();});
+
+		Exception::makeAndThrow(
+			QStringLiteral( "QE Orm cannot fetch any row on table '")
+				% model->name() 
+				% QStringLiteral( "' using the following values as primary key {")
+				% pkStrValues.join( QStringLiteral(",")) % QStringLiteral("}"));
+	}
 
 	loadObjectFromRecord( *model, ds.record(), target);
 	loadOneToMany( context, model, source, target);
@@ -99,8 +123,13 @@ QVariantList LoadHelper::loadObjectsUsingForeignKey(
 	ModelShd model = ModelRepository::instance().model( refMetaObjectEntity);
 
 	// Cursor over many objects
-	QSqlQuery ds = source->sqlHelper().loadUsingForeignKey( context, refModel, fkDef, 
-		target);
+	const sql::Executor& sqlExec = source->executor();
+	sql::AbstractGenerator* stmtMaker = sql::GeneratorRepository::instance().generator( 
+		sqlExec.dbmsType());
+	const QString stmt = stmtMaker->selectionUsingForeignKey( refModel, fkDef);
+
+	QSqlQuery ds = sqlExec.execute( context, refModel, stmt, target,  
+			QStringLiteral( "QE Orm cannot fetch object from a relation."));
 
 	while( ds.next())
 	{

@@ -1,4 +1,4 @@
-#include "SqlHelper.hpp"
+#include "Executor.hpp"
 #include "generator/ANSIGenerator.hpp"
 #include "generator/SQLiteGenerator.hpp"
 #include <qe/entity/Model.hpp>
@@ -9,6 +9,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlDriver>
 #include <QString>
 #include <QStringBuilder>
 #include <QVariant>
@@ -32,121 +33,37 @@ void bindMappingOneToMany( const Model& model, QSqlQuery& query,
 	const ObjectContext& context);
 
 
-Q_LOGGING_CATEGORY( qe::orm::sql::lcSQLHelper, "com.dmious.qe.orm.sqlHelper");
+Q_LOGGING_CATEGORY( qe::orm::sql::lcExecutor, "com.dmious.qe.orm.sqlHelper");
 
 // Class Generator
 // ============================================================================
 
-SQLHelper::SQLHelper( const QString& connName)
+Executor::Executor( const QString& connName)
 	: m_connName( connName)
 {
 	// If connection name is empty, it will use the default connection.
 	if( m_connName.isEmpty())
 		m_connName = QLatin1Literal( QSqlDatabase::defaultConnection);
 		
-	using GeneratorBuilder = std::function<ANSIGenerator*()>;
-	const static map<QString, GeneratorBuilder> sqlGenMaker = {
-		{ 
-			QString(), 
-			[](){ return new ANSIGenerator(); }
-		},
-		{ 
-			QStringLiteral( "QSQLITE"), 
-			[](){ return new SQLiteGenerator();}
-		} 
-	};
 
 	QSqlDatabase db = QSqlDatabase::database( connName, false);
-	const QString driverName = db.driverName();
-
-	auto itr = sqlGenMaker.find( driverName);
-	if( itr == end( sqlGenMaker))
-		itr = sqlGenMaker.find( QString());
-
-	m_sqlStmtBuilder.reset( itr->second());
+	QSqlDriver* driver = db.driver();
+	if( driver)
+		m_dbmsType = static_cast<int>( driver->dbmsType());
+	else
+		m_dbmsType = QSqlDriver::UnknownDbms;
 }
 
-SQLHelper::SQLHelper( const SQLHelper& other) = default;
+Executor::Executor( const Executor& other) = default;
 			
-SQLHelper::~SQLHelper() = default;
+Executor::~Executor() = default;
+			
+int Executor::dbmsType() const
+{ return m_dbmsType;}
 
-bool SQLHelper::exitsObject( const Model& model, 
-	const QVariantList& pkValues) const
-{
-	const QString stmt = m_sqlStmtBuilder->existsStatement( model);
-	QSqlQuery query = execute( stmt, pkValues, 
-		QStringLiteral( "QE Orm cannot check existence of object in table '")
-	  		% model.name() 
-	  		% QStringLiteral(	"'. Error %1: %2"));
-
-	return query.next();
-}
-
-void SQLHelper::update( ObjectContext& context, const Model& model, 
-	const QObject* source) const
-{
-	const QString stmt = m_sqlStmtBuilder->updateStatement( model);
-	execute( context, model, stmt, source, 
-		QStringLiteral( "QE Orm cannot update an object from table '")
-			% model.name() 
-			% QStringLiteral( "'. Error %1: %2"));
-}
-
-void SQLHelper::insert( ObjectContext& context, const Model& model, 
-	QObject* source) const
-{
-	const QString stmt = m_sqlStmtBuilder->insertStatement( model);
-	QSqlQuery query = execute( context, model, stmt, source,
-		QStringLiteral( "QE Orm cannot insert new object in table '")
-			% model.name() 
-			% QStringLiteral( "'. Error %1: %2"));
-
-	// Update object
-	QVariant insertId = query.lastInsertId();
-	if( ! insertId.isNull())
-	{
-		const auto colDef = model.findEntityDef( Model::findByAutoIncrement{});
-		if( colDef)
-			source->setProperty( colDef->propertyName().constData(), insertId);
-	}
-}
-				
-void SQLHelper::createTableIfNotExist( const qe::entity::Model & model) const
-{
-	const QString stmt = m_sqlStmtBuilder->createTableIfNotExistsStatement( model);
-	execute( stmt, QVariantList(), 
-		QStringLiteral("QE Orm cannot create the table '")
-		% model.name() 
-		% QStringLiteral("'. Error %1: %2"));
-}
-
-QSqlQuery SQLHelper::loadUsingPrimaryKey( const qe::entity::Model & model,
-	const QVariantList& primaryKey) const
-{
-	const QString stmt = m_sqlStmtBuilder->selectionUsingPrimaryKey( model);
-	QSqlQuery ds = execute( stmt, primaryKey,
-		QStringLiteral( "QE Orm cannot select an object in table '")
-			% model.name()
-			% QStringLiteral( "'. Error %1: %2"));
-
-	if( !ds.next())
-	{
-		QStringList pkStrValues;
-		transform( begin(primaryKey), end(primaryKey), 
-			back_inserter(pkStrValues), 
-			[]( const QVariant& var){ return var.toString();});
-
-		Exception::makeAndThrow(
-			QStringLiteral( "QE Orm cannot fetch any row on table '")
-			% model.name() 
-			% QStringLiteral( "' using the following values as primary key {")
-			% pkStrValues.join( QStringLiteral(",")) % QStringLiteral("}"));
-	}
-
-	return ds;
-}
-
-QSqlQuery SQLHelper::loadUsingForeignKey( ObjectContext& context, const Model& model, 
+#if 0
+			
+QSqlQuery Executor::loadUsingForeignKey( ObjectContext& context, const Model& model, 
 		const RelationDef& fkDef, const QObject* target) const
 {
 	const QString stmt = m_sqlStmtBuilder->selectionUsingForeignKey( model, fkDef);
@@ -157,11 +74,12 @@ QSqlQuery SQLHelper::loadUsingForeignKey( ObjectContext& context, const Model& m
 
 	return ds;
 }
+#endif
 
-// SQLHelper execution
+// Executor execution
 // ============================================================================
 
-QSqlQuery SQLHelper::execute( const QString& stmt, const QVariantList& params,
+QSqlQuery Executor::execute( const QString& stmt, const QVariantList& params,
 	const QString& errorMsg) const
 {
 	QSqlQuery query( QSqlDatabase::database( m_connName));
@@ -172,7 +90,7 @@ QSqlQuery SQLHelper::execute( const QString& stmt, const QVariantList& params,
 	return execute( query, errorMsg);
 }
 
-QSqlQuery SQLHelper::execute( QSqlQuery& query, const QString& errorMsg) const
+QSqlQuery Executor::execute( QSqlQuery& query, const QString& errorMsg) const
 {
 	const bool isSuccess = query.exec();
 	logQuery( query);
@@ -182,15 +100,17 @@ QSqlQuery SQLHelper::execute( QSqlQuery& query, const QString& errorMsg) const
 		const QSqlError sqlError = query.lastError();
 		if( sqlError.type() != QSqlError::NoError )
 		{
-			Exception::makeAndThrow( errorMsg
-				.arg( sqlError.nativeErrorCode())
-				.arg( sqlError.text()));
+			Exception::makeAndThrow(
+				errorMsg 
+				% QString( "SQL Error %1: %2")
+					.arg( sqlError.nativeErrorCode())
+					.arg( sqlError.text()));
 		}
 	}
 	return query;
 }
 
-QSqlQuery SQLHelper::execute( ObjectContext& context, const Model& model,
+QSqlQuery Executor::execute( ObjectContext& context, const Model& model,
 		const QString& stmt, const QObject* source, const QString& errorMsg) const
 {
 	// 1. Prepare statement.
@@ -206,10 +126,10 @@ QSqlQuery SQLHelper::execute( ObjectContext& context, const Model& model,
 }
 
 
-// SQLHelper logging
+// Executor logging
 // =============================================================================
 
-void SQLHelper::logQuery( QSqlQuery& query) const
+void Executor::logQuery( QSqlQuery& query) const
 {
 	const QChar quotationMark('\'');
 	const QChar openKey('{');
@@ -263,7 +183,7 @@ void SQLHelper::logQuery( QSqlQuery& query) const
 	}
 	os << closeKey << endl;
 
-	qCDebug( lcSQLHelper) << message;
+	qCDebug( lcExecutor) << message;
 }
 
 // Free functions

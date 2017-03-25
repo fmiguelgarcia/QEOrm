@@ -25,7 +25,7 @@
  */
 
 #pragma once
-#include <qe/entity/Types.hpp>
+#include <qe/orm/sql/generator/AbstractGenerator.hpp>
 #include <QString>
 #include <QVariantList>
 #include <vector>
@@ -37,92 +37,53 @@ namespace qe { namespace orm { namespace sql {
 	///
 	/// It SHOULD use ANSI SQL, in order to be a general SQL generator. 
 	/// @todo Add table version as a comment or other table, add version to CLASSINFO
-	class ANSIGenerator
+	class ANSIGenerator : public AbstractGenerator
 	{
 		public:
-			/// @brief It generates a SQL statement to check if an object exits
-			/// in database. 
-			virtual QString existsStatement( const qe::entity::Model& model) const;
+			virtual ~ANSIGenerator();
 
-			/// @brief It generates an SQL statement to update. 
-			virtual QString updateStatement( const qe::entity::Model& model) const;
+			QString existsStatement( const entity::Model& model) const override;
 
-			/// @brief It generates an SQL statement to insert @p o in 
-			/// database using @p model.
-			virtual QString insertStatement( const qe::entity::Model& model) const;
+			QString updateStatement( const qe::entity::Model& model) const override;
 
-			/// @brief It creates the SQL statement for @p model.
-			virtual QString createTableIfNotExistsStatement( 
-					const qe::entity::Model& model) const;
+			QString insertStatement( const qe::entity::Model& model) const;
 
-			/// @brief It generates an SQL statement to load an object from @p model, 
-			/// using @p pk as values for primary key.
-			virtual QString selectionUsingPrimaryKey( 
-					const qe::entity::Model& model) const;
+			QString createTableIfNotExistsStatement( 
+					const qe::entity::Model& model) const override;
+
+			QString selectionUsingPrimaryKey( 
+					const qe::entity::Model& model) const override;
 	
-			/// @brief It creates an SQL statement to load objects using @p fk foreign
-			/// key in model @p model.
-			virtual QString selectionUsingForeignKey( const qe::entity::Model& model, 
-					const qe::entity::RelationDef& fkDef) const;
+			QString selectionUsingForeignKey( const entity::Model& model, 
+					const entity::RelationDef& fkDef) const override;
+
+			QString selectionUsingProperties( const entity::Model& model,
+					const entity::EntityDefList& entities) const override;
 
 		protected:
-			/// @brief It return the projection (SELECT clause) for 
-			/// specific model
-			virtual QString projection( const qe::entity::Model &model) const;
+			QString projection( const entity::Model &model) const override;
 
-			/// @brief It generates the SQL partial WHERE statement to 
-			/// locate an object using its primary key into @p model.
-			virtual QString primaryKeyWhereClausure( 
-					const qe::entity::Model &model) const;
+			QString primaryKeyWhereClausure( 
+					const entity::Model &model) const override;
 
-			/// @brief It generates the SQL partial WHERE statement to
-			/// locate an object using a foreign key.
-			virtual QString foreignKeyWhereClausure( 
-					const qe::entity::RelationDef& fkDef) const;
+			QString foreignKeyWhereClausure( 
+					const entity::RelationDef& fkDef) const override;
 
-			virtual QString whereClausure( 
-					const qe::entity::EntityDefList &colDefList) const;
+			QString whereClausure( 
+					const entity::EntityDefList &colDefList) const override;
 
-			/// @brief How to defined a column as an Auto-Increment.
-			/// 
-			/// Different database engines define this in several ways. 
-			/// Overloaded generators should override this function.
-			virtual QString autoIncrementKeyWord() const;
+			QString autoIncrementKeyWord() const override;
 
-			/// @brief It generates the SQL partial statement for the 
-			/// column definition @p column. 
-			virtual QString makeColumnDefinition( 
-					const qe::entity::EntityDef& column) const;
+			QString makeColumnDefinition( 
+					const entity::EntityDef& column) const override;
 			
-			/// @brief It generates the SQL partial statement for primary.
-			virtual QString makePrimaryKeyDefinition(
-					const entity::Model &model) const;
+			QString makePrimaryKeyDefinition(
+					const entity::Model &model) const override;
 		
-			/// @brief It generates the SQL partial statement for foreign keys.
-			virtual QString makeForeignKeyDefinition( 
-					const entity::Model& model) const;
+			QString makeForeignKeyDefinition( 
+					const entity::Model& model) const override;
 
-			/// @brief It maps the C++ type @p propertyType into a database type.
-			/// @param size In case of strings, you can limit the 
-			/// number of characters. By default it is 0, which means no 
-			/// limitation at all.
-			virtual QString databaseType( const int propertyType, 
-					const uint size) const;
-#if 0
-		public:
-
-			virtual QString selectionUsingPrimaryKey( 
-					const QVariantList& pk, 
-					const Model &model) const;
-
-			virtual QString selectionUsingForeignKey( 
-					const ForeignKeyDef& fk, 
-					const Model& model) const;
-
-			virtual QString selectionUsingProperties( 
-					const ColumnDefList& defs,
-					const Model& model) const;
-
-#endif
+			QString databaseType( const int propertyType, 
+					const uint size) const override;
 	};
 }}}

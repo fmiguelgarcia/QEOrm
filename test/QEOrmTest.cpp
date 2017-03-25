@@ -52,8 +52,6 @@ QEOrmTest::QEOrmTest( QObject* parent)
 
 void QEOrmTest::checkSaveAutoIncrement()
 {
-	QSKIP( "Temporary skipped");
-	
 	Book book;
 	book.title = "Effective Modern C++";
 	book.author = "Scott Meyers";

@@ -24,25 +24,32 @@
  *
  * $QE_END_LICENSE$
  */
-#include "SerializedItem.hpp"
-using namespace qe::orm;
-using namespace qe::orm::sql;
 
-SerializedItem::SerializedItem( const Executor& helper)
-	: SerializedItem( QVariantList{}, helper)
-{}
+#pragma once
+#include <QString>
+#include <map>
+#include <memory>
+#include <mutex>
 
-SerializedItem::SerializedItem(
-	QVariantList&& pkValues, sql::Executor&& helper)
-		: AbstractSerializedItem( std::move(pkValues)),
-		m_helper( std::move(helper))
-{}
+namespace qe { namespace orm { namespace sql {
 
-SerializedItem::SerializedItem( const QVariantList& pkValues,
-	const Executor& helper)
-	: AbstractSerializedItem( pkValues), m_helper( helper)
-{}
-
-const Executor& SerializedItem::executor() const noexcept
-{ return m_helper;} 
-
+	class AbstractGenerator;
+	class GeneratorRepository
+	{
+		public:
+			static GeneratorRepository& instance();
+			~GeneratorRepository();
+			
+			AbstractGenerator* generator( const int dbmsType);
+			
+		private:
+			GeneratorRepository();
+			AbstractGenerator * createAndStoreGenerator( const int dbmsType);
+		
+			using GeneratorShd = std::shared_ptr<AbstractGenerator>;
+			using Driver2GeneratorMap = std::map<int, GeneratorShd>;
+			
+			Driver2GeneratorMap m_generatorByDriver;
+			std::mutex m_generatorByDriverMtx;
+	};
+}}}

@@ -23,7 +23,7 @@
  *
  * $QE_END_LICENSE$
  */
-#include "generator/ANSIGenerator.hpp"
+#include "ANSIGenerator.hpp"
 #include <qe/entity/Model.hpp>
 #include <qe/entity/EntityDef.hpp>
 #include <qe/entity/RelationDef.hpp>
@@ -99,6 +99,9 @@ namespace {
 		{ return estimateTypeSize(*left) < estimateTypeSize(*right);}
 	};
 }
+
+ANSIGenerator::~ANSIGenerator()
+{}
 
 QString ANSIGenerator::existsStatement( const Model& model) const
 {
@@ -206,6 +209,17 @@ QString ANSIGenerator::selectionUsingPrimaryKey( const Model& model) const
 		projection( model)
 		% QStringLiteral( " WHERE ") 
 		% primaryKeyWhereClausure( model);
+
+	return stmt;
+}
+
+QString ANSIGenerator::selectionUsingProperties( const Model& model,
+	const EntityDefList& entities) const
+{
+	const QString stmt =
+		projection( model)
+		% QStringLiteral( " WHERE ") 
+		% whereClausure( entities);
 
 	return stmt;
 }

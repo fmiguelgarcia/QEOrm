@@ -24,25 +24,24 @@
  *
  * $QE_END_LICENSE$
  */
-#include "SerializedItem.hpp"
-using namespace qe::orm;
-using namespace qe::orm::sql;
+#pragma once
+#include <QString>
+#include <QVariant>
+#include <map>
 
-SerializedItem::SerializedItem( const Executor& helper)
-	: SerializedItem( QVariantList{}, helper)
-{}
+class QSqlQuery;
+class QMetaObject;
+namespace qe { namespace entity { class Model; }}
+namespace qe { namespace orm { 
 
-SerializedItem::SerializedItem(
-	QVariantList&& pkValues, sql::Executor&& helper)
-		: AbstractSerializedItem( std::move(pkValues)),
-		m_helper( std::move(helper))
-{}
+	class SerializedItem;
+	class FindHelper
+	{
+		public:
+			QSqlQuery findEqualProperty( 
+				const entity::Model& model,
+				const SerializedItem* const source,
+				const std::map<QString, QVariant>& properties) const;
 
-SerializedItem::SerializedItem( const QVariantList& pkValues,
-	const Executor& helper)
-	: AbstractSerializedItem( pkValues), m_helper( helper)
-{}
-
-const Executor& SerializedItem::executor() const noexcept
-{ return m_helper;} 
-
+	};
+}}

@@ -103,15 +103,16 @@ namespace qe { namespace orm {
 			void load( QVariantList&& primaryKey, 
 					QObject *const target) const;
 
-#if 0
+#if 0 
 			/// @brief It finds all database objects which properties are equal to
 			/// values specified on @p properties map.
 			/// @param properties Properties map.
 			/// @param parent Parent will be used for creation of each new object. If
 			/// nullptr is used, you should be responsible to delete them.
 			template< class T>
-				QEOrmResultSet<T> findEqual( const std::map<QString, QVariant>& properties,
-						QObject* parent = nullptr) const
+				ResultSet<T> findEqual( 
+					const std::map<QString, QVariant>& properties,
+					QObject* parent = nullptr) const
 				{
 					const QMetaObject* mo = & T::staticMetaObject;
 					QEOrmFindHelper findHelper( mo, m_sqlGenerator.get());		

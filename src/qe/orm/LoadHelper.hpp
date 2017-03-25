@@ -39,10 +39,10 @@ namespace qe { namespace orm {
 				const entity::ModelShd& model, const SerializedItem *const source, 
 				QObject *const target) const;
 
-		private:
 			void loadObjectFromRecord( const entity::Model& model, 
 				const QSqlRecord& record, QObject *const target) const;
 
+		private:
 			void loadOneToMany( entity::ObjectContext& context, 
 				const entity::ModelShd& model, const SerializedItem *const source,
 				QObject* const target) const;

@@ -26,7 +26,6 @@
 #include "QEOrm.hpp"
 #include "SaveHelper.hpp"
 #include "LoadHelper.hpp"
-#include "sql/SqlHelper.hpp"
 #include "serialization/SerializedItem.hpp"
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
@@ -106,7 +105,7 @@ QEOrm::QEOrm()
 
 void QEOrm::save( QObject* const source) const
 {
-	sql::SQLHelper helper( QLatin1String( QSqlDatabase::defaultConnection));
+	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
 	SerializedItem si( helper);
 
 	AbstractSerializer::save( source, &si); 

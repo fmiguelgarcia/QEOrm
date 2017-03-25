@@ -24,7 +24,7 @@
  * $QE_END_LICENSE$
  */
 
-#include "generator/SQLiteGenerator.hpp"
+#include "SQLiteGenerator.hpp"
 #include <qe/entity/Model.hpp>
 #include <qe/entity/EntityDef.hpp>
 
