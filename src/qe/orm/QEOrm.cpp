@@ -29,7 +29,9 @@
 #include "serialization/SerializedItem.hpp"
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
+#include <qe/entity/ModelRepository.hpp>
 #include <QStringList>
+#include <QStringBuilder>
 
 using namespace qe::orm;
 using namespace qe::entity;
@@ -153,6 +155,17 @@ void QEOrm::load(QVariantList&& primaryKey, QObject*const target) const
 		new SerializedItem( std::move(primaryKey)));
 	
 	AbstractSerializer::load( ormSource.get(), target);
+}
+
+ModelShd QEOrm::getModelOrThrow( const QMetaObject* metaObject) const
+{
+	ModelShd model = ModelRepository::instance().model( metaObject);
+	if( !model)
+		Exception::makeAndThrow(
+				QStringLiteral( "QE Orm cannot find model for class ")
+				% metaObject->className());
+
+	return model;
 }
 
 

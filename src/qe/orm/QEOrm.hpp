@@ -81,6 +81,8 @@
 #pragma once
 #include <qe/entity/serialization/AbstractSerializer.hpp>
 #include <qe/entity/Types.hpp>
+#include <qe/orm/ResultSet.hpp>
+#include <qe/orm/FindHelper.hpp>
 #include <QVariantList>
 #include <set>
 #include <mutex>
@@ -103,20 +105,24 @@ namespace qe { namespace orm {
 			void load( QVariantList&& primaryKey, 
 					QObject *const target) const;
 
-#if 0 
+#if 1 
 			/// @brief It finds all database objects which properties are equal to
 			/// values specified on @p properties map.
 			/// @param properties Properties map.
 			/// @param parent Parent will be used for creation of each new object. If
 			/// nullptr is used, you should be responsible to delete them.
 			template< class T>
-				ResultSet<T> findEqual( 
+				ResultSet<T> findEqual(
+					const SerializedItem * const source,
 					const std::map<QString, QVariant>& properties,
 					QObject* parent = nullptr) const
 				{
-					const QMetaObject* mo = & T::staticMetaObject;
-					QEOrmFindHelper findHelper( mo, m_sqlGenerator.get());		
-					return QEOrmResultSet<T>( findHelper.findEqualProperty(properties), parent);
+					entity::ModelShd model = getModelOrThrow( & T::staticMetaObject); 
+					
+					FindHelper findHelper;
+					return ResultSet<T>( 
+						findHelper.findEqualProperty( *model, source, properties), 
+						parent);
 				}
 #endif
 
@@ -134,6 +140,8 @@ namespace qe { namespace orm {
 			QEOrm();
 			QEOrm( const QEOrm& );
 			QEOrm& operator=( const QEOrm& );
+
+			entity::ModelShd getModelOrThrow( const QMetaObject* metaObject) const;
 
 		private:
 			mutable std::mutex m_checkedTablesMtx;
