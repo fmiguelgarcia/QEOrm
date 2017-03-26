@@ -158,12 +158,21 @@ void Executor::logQuery( QSqlQuery& query) const
 					QByteArray buffer;
 					QDataStream in( buffer);
 					in << value.toBitArray();
-					os << quotationMark << buffer.toHex()<< quotationMark;
+					os << quotationMark << buffer.left(32).toHex();
+					if( buffer.size() > 32)
+						os << "...(size=" << buffer.size() << ')';
+					os << quotationMark;
 					break;
 				}	
 			case QVariant::Type::ByteArray:
-				os << quotationMark << value.toByteArray().toHex() << quotationMark;
-				break;
+				{
+					const QByteArray data = value.toByteArray();
+					os << quotationMark << data.left(32).toHex();
+					if( data.size() > 32)
+						os << "...(size=" << data.size() << ')'; 
+					os << quotationMark;
+					break;
+				}
 			case QVariant::Type::Date:
 				os << value.toDate().toString( Qt::ISODate);
 				break;
@@ -174,8 +183,14 @@ void Executor::logQuery( QSqlQuery& query) const
 				os << value.toDateTime().toString( Qt::ISODate);
 				break;
 			case QVariant::Type::String:
-				os << quotationMark << value.toString() << quotationMark;
-				break;
+				{
+					const QString data = value.toString();
+					os << quotationMark << data.left(32);
+				  	if( data.size() > 32)
+						os << "...(size=" << data.size() << ')';
+					os << quotationMark;
+					break;
+				}
 			default:
 				os << value.toString();
 		}
