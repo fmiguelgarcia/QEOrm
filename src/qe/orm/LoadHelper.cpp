@@ -27,7 +27,7 @@
 #include "LoadHelper.hpp"
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
-#include "serialization/SerializedItem.hpp"
+#include "SerializedItem.hpp"
 
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>

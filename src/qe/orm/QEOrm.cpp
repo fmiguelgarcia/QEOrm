@@ -26,7 +26,7 @@
 #include "QEOrm.hpp"
 #include "SaveHelper.hpp"
 #include "LoadHelper.hpp"
-#include "serialization/SerializedItem.hpp"
+#include "SerializedItem.hpp"
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>

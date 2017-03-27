@@ -28,7 +28,7 @@
 #include <qe/orm/sql/Executor.hpp>
 #include <qe/orm/sql/generator/AbstractGenerator.hpp>
 #include <qe/orm/sql/GeneratorRepository.hpp>
-#include <qe/orm/serialization/SerializedItem.hpp>
+#include <qe/orm/SerializedItem.hpp>
 
 #include <qe/entity/Model.hpp>
 #include <QSqlQuery>

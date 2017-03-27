@@ -7,16 +7,16 @@ set( QEOrm_MINOR_VERSION 1)
 set( QEOrm_BUILD_VERSION 0)
 
 set( QEOrm_SRCS
+	SerializedItem.cpp
 	LoadHelper.cpp SaveHelper.cpp FindHelper.cpp
 	ResultSet.cpp
 	QEOrm.cpp )
 add_subdirectory( sql)
-add_subdirectory( serialization)
 
 # Link
 add_library( QEOrm SHARED ${QEOrm_SRCS})
 target_link_libraries( QEOrm 
-	QEOrmS11n QEOrmSql
+	QEOrmSql
 	Qt5::Core  Qt5::Sql ${CONAN_LIBS}) 
 set_target_properties( QEOrm PROPERTIES 
 	VERSION ${QEOrm_MAYOR_VERSION}.${QEOrm_MINOR_VERSION}.${QEOrm_BUILD_VERSION}

@@ -24,7 +24,7 @@
  * $QE_END_LICENSE$
  */
 #include "SaveHelper.hpp"
-#include "serialization/SerializedItem.hpp"
+#include "SerializedItem.hpp"
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
 #include <qe/common/Exception.hpp>
