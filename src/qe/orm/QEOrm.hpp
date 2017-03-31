@@ -79,7 +79,7 @@
  * - @c @QEOrm.isNull: If this is @c false, the column table will be created as @c NOT @c NULL. By default, it is @c true.
  */
 #pragma once
-#include <qe/entity/serialization/AbstractSerializer.hpp>
+#include <qe/entity/AbstractSerializer.hpp>
 #include <qe/entity/Types.hpp>
 #include <qe/orm/ResultSet.hpp>
 #include <qe/orm/FindHelper.hpp>
@@ -100,10 +100,17 @@ namespace qe { namespace orm {
 			/// @brief It returns the singleton instance.
 			static QEOrm& instance();
 
-			void save( QObject* const source) const; 
+			void save( QObject* const source) const;
+
+			virtual void save( QObject* const source,
+				SerializedItem* const target) const;
 
 			void load( QVariantList&& primaryKey, 
-					QObject *const target) const;
+				QObject *const target) const;
+
+			void load( const SerializedItem* const si,
+				QVariantList&& primaryKey,
+				QObject* const target) const;
 
 #if 1 
 			/// @brief It finds all database objects which properties are equal to
@@ -130,6 +137,10 @@ namespace qe { namespace orm {
 			void save( qe::entity::ObjectContext& context, 
 					const qe::entity::ModelShd& model, QObject *const source, 
 					qe::entity::AbstractSerializedItem* const target) const override;
+			void save( qe::entity::ObjectContext& context, 
+					const qe::entity::ModelShd& model, QObject *const source, 
+					SerializedItem* const target) const;
+
 
 			void load( qe::entity::ObjectContext& context, 
 					const qe::entity::ModelShd& model, 

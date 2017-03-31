@@ -110,19 +110,32 @@ void QEOrm::save( QObject* const source) const
 	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
 	SerializedItem si( helper);
 
-	AbstractSerializer::save( source, &si); 
+	save( source, &si); 
+}
+
+void QEOrm::save( QObject* const source,
+	SerializedItem* const target) const
+{
+	ObjectContext context;
+	ModelShd model = ModelRepository::instance().model( source->metaObject());
+
+	save( context, model, source, target);
 }
 
 void QEOrm::save( ObjectContext& context, const ModelShd& model, 
 		QObject *const source, AbstractSerializedItem* const target) const
 {
-	using namespace qe::orm::sql;
 	SerializedItem* const ormTarget = checkedCast( target);
-
+	save( context, model, source, ormTarget);
+}
+	
+void QEOrm::save( ObjectContext& context, const ModelShd& model, 
+		QObject *const source, SerializedItem* const target) const
+{
 	SaveHelper saver;
-	checkAndCreateDatabaseTables( saver, model, ormTarget, m_checkedTables, 
+	checkAndCreateDatabaseTables( saver, model, target, m_checkedTables, 
 			m_checkedTablesMtx);
-	saver.save( context, model, source, ormTarget);
+	saver.save( context, model, source, target);
 }
 
 

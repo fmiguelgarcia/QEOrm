@@ -32,11 +32,16 @@ SerializedItem::SerializedItem( const Executor& helper)
 	: SerializedItem( QVariantList{}, helper)
 {}
 
+SerializedItem::SerializedItem( const QString& databaseConn)
+	: SerializedItem( QVariantList{}, sql::Executor( databaseConn))
+{}
+
 SerializedItem::SerializedItem(
 	QVariantList&& pkValues, sql::Executor&& helper)
 		: AbstractSerializedItem( std::move(pkValues)),
 		m_helper( std::move(helper))
 {}
+
 
 SerializedItem::SerializedItem( const QVariantList& pkValues,
 	const Executor& helper)

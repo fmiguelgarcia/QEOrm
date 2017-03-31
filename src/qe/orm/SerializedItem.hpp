@@ -26,7 +26,7 @@
  */
 #pragma once
 #include <qe/orm/sql/Executor.hpp>
-#include <qe/entity/serialization/AbstractSerializedItem.hpp>
+#include <qe/entity/AbstractSerializedItem.hpp>
 
 namespace qe { namespace orm { 
 	
@@ -36,6 +36,8 @@ namespace qe { namespace orm {
 		public:
 			explicit SerializedItem( 
 				const sql::Executor& helper = sql::Executor());
+			explicit SerializedItem(
+				const QString& databaseConn);
 	
 			SerializedItem(
 				QVariantList&& pkValues,
