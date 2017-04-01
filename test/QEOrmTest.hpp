@@ -26,4 +26,5 @@ class QEOrmTest : public QObject
 	private slots:
 		void checkSaveAutoIncrement();
 		void checkSaveReferences();
+		void checkDelete();
 };

@@ -117,6 +117,15 @@ QString CachedGenerator::primaryKeyWhereClausure(
 		.cachedValue;
 }
 
+QString CachedGenerator::deleteStatement( 
+	const Model &model) const 
+{
+	return findByModel( cqDeleteStatement, model,
+			[this, &model]() -> QString
+			{ return m_generator->deleteStatement( model);})
+		.cachedValue;
+}
+
 // No Cached statements
 // ============================================================================
 

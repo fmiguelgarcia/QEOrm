@@ -39,6 +39,8 @@ namespace qe { namespace orm { namespace sql {
 			QString insertStatement( const qe::entity::Model& model) const override;
 			QString selectionUsingPrimaryKey( 
 					const qe::entity::Model& model) const override;
+			QString deleteStatement( 
+				const entity::Model& model) const override; 
 	
 			// No cached	
 			QString createTableIfNotExistsStatement( 
@@ -78,6 +80,7 @@ namespace qe { namespace orm { namespace sql {
 				cqSelectionUsingPrimaryKey,
 				cqProjection,
 				cqPrimaryKeyWhereClausure,
+				cqDeleteStatement,
 				cqLast
 			};
 

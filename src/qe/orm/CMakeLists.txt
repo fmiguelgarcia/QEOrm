@@ -8,7 +8,7 @@ set( QEOrm_BUILD_VERSION 0)
 
 set( QEOrm_SRCS
 	SerializedItem.cpp
-	LoadHelper.cpp SaveHelper.cpp FindHelper.cpp
+	LoadHelper.cpp SaveHelper.cpp FindHelper.cpp DeleteHelper.cpp
 	ResultSet.cpp
 	QEOrm.cpp )
 add_subdirectory( sql)

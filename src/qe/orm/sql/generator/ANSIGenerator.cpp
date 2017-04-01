@@ -419,54 +419,13 @@ QString ANSIGenerator::foreignKeyWhereClausure( const RelationDef& fkDef) const
 	return filters.join( QStringLiteral( " AND "));
 }
 
-
-
-#if 0
-		
-QString ANSIGenerator::selectionUsingPrimaryKey(const QVariantList& pk, 
-		const Model &model) const
+QString ANSIGenerator::deleteStatement( const Model& model) const
 {
-	QString stmt;
-	QTextStream os( &stmt);
-	os << projection( model) << QLatin1Literal( " WHERE ") << filterByPrimaryKey( model);
-	return stmt;
-}
-
-QString ANSIGenerator::selectionUsingForeignKey( const ForeignKeyDef& fkDef, 
-		const Model& model) const
-{
-	QString stmt;
-	QTextStream os( &stmt);
-	os << projection( model) << QLatin1Literal( " WHERE ") << filterByForeignKey( fkDef);
+	const QString stmt =
+		QStringLiteral( "DELETE FROM '") 
+		% model.name() 
+		% QStringLiteral( "' WHERE ") 
+		% primaryKeyWhereClausure( model);
 
 	return stmt;
 }
-
-QString ANSIGenerator::selectionUsingProperties( const EntityDefList& defs, 
-		const Model& model) const
-{
-	QString stmt;
-	QTextStream os( &stmt);
-	os << projection( model) << QLatin1Literal( " WHERE ") << filterByProperties( defs);
-
-	return stmt;
-}
-
-
-QString ANSIGenerator::projection( const Model &model) const
-{
-	// Get no mapping columns
-	QStringList columns;
-	for( const auto& colDef : model.columnDefs())
-		if( colDef->mappingType == EntityDef::MappingType::NoMappingType)
-			columns << colDef->dbColumnName;
-
-	QString stmt;
-	QTextStream os( &stmt);
-	os << QLatin1Literal( "SELECT ") << columns.join( QLatin1Literal(", "))
-		<< QLatin1Literal( " FROM '") << model.table() << QLatin1Literal("' ");
-
-	return stmt;
-}
-
-#endif

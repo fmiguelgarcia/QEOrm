@@ -38,6 +38,7 @@
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QSqlField>
+#include <QSqlError>
 
 using namespace qe::common;
 using namespace qe::entity;
@@ -56,22 +57,26 @@ void LoadHelper::load( ObjectContext& context, const ModelShd& model,
 
 	QSqlQuery ds = sqlExec.execute( stmt, pk,  
 			QStringLiteral( "QE Orm cannot fetch an object."));
-
-	if( !ds.next())
+	const bool resultAvailable = ds.next();
+	
+	if( resultAvailable)
+	{
+		loadObjectFromRecord( *model, ds.record(), target);
+		loadOneToMany( context, model, source, target);
+	}
+	else if( ds.lastError().type() != QSqlError::NoError)
 	{
 		QStringList pkStrValues;
 		transform( begin(pk), end(pk), back_inserter(pkStrValues), 
 			[]( const QVariant& var){ return var.toString();});
 
 		Exception::makeAndThrow(
-			QStringLiteral( "QE Orm cannot fetch any row on table '")
-				% model->name() 
-				% QStringLiteral( "' using the following values as primary key {")
-				% pkStrValues.join( QStringLiteral(",")) % QStringLiteral("}"));
+			QString( "QE Orm cannot fetch any row on table '%1' "
+				"using the following values as primary key {%2}. "
+				"SQL error: %3")
+				.arg( model->name()).arg( pkStrValues.join( ","))
+				.arg( ds.lastError().text()));
 	}
-
-	loadObjectFromRecord( *model, ds.record(), target);
-	loadOneToMany( context, model, source, target);
 }
 
 void LoadHelper::loadObjectFromRecord( const Model& model, 

@@ -65,6 +65,11 @@ namespace qe { namespace orm { namespace sql {
 			virtual QString selectionUsingProperties( const entity::Model& model,
 					const entity::EntityDefList& entities) const = 0;
 
+			/// @brief It generates an SQL delete statement for a object
+			///	using its primary key.
+			virtual QString deleteStatement( 
+				const entity::Model& model) const = 0;
+
 		protected:
 			/// @brief It return the projection (SELECT clause) for 
 			/// specific model

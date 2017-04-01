@@ -38,6 +38,41 @@ using namespace std;
 
 QTEST_MAIN(QEOrmTest);
 
+namespace {
+	Book * createBook1() {
+		Book *book = new Book;
+		book->title = "Effective Modern C++";
+		book->author = "Scott Meyers";
+		book->pages = 303;
+		book->binSignature = QCryptographicHash::hash( book->title.toUtf8(),
+				QCryptographicHash::Sha256);	
+		return book;	
+	}
+
+	Chapter* createBookChapter1( const int bookId ) {
+		Chapter *ch1 = new Chapter( nullptr, "Deducing Types");
+		ch1->text = "- During template type deduction, arguments that are references "
+		"are treated as non-references, i.e., their reference-ness is ignored."
+		"\n - When deducing types for universal reference parameters, lvalue "
+		"arguments get special treatment.";
+		ch1->id = 1 + bookId * 1000;
+		ch1->setObjectName( "Chapter 1");
+		return ch1;
+	}
+	
+	Chapter* createBookChapter2( const int bookId ) {
+		Chapter *ch2 = new Chapter( nullptr, "Understand auto type deduction");
+		ch2->text = " - auto type deduction is usually the same as template type "
+		"deduction, but auto type  deduction  assumes  that  a  braced  "
+		"initializer  represents  a  std::initializer_list, and template type"
+		"deduction doesn’t.\n -  auto in  a  function  return  type  or  a "
+		"lambda  parameter  implies  template  type deduction, not auto type "
+		"deduction.";
+		ch2->id = 2 + bookId * 1000;
+		return ch2;
+	}
+}
+
 QEOrmTest::QEOrmTest( QObject* parent)
 	: QObject( parent)
 {
@@ -52,56 +87,45 @@ QEOrmTest::QEOrmTest( QObject* parent)
 
 void QEOrmTest::checkSaveAutoIncrement()
 {
-	Book book;
-	book.title = "Effective Modern C++";
-	book.author = "Scott Meyers";
-	book.pages = 303;
-  	book.binSignature = QCryptographicHash::hash( book.title.toUtf8(),
-		QCryptographicHash::Sha256);	
-	
-	QEOrm::instance().save( &book);
-	QVERIFY( book.id != 0);
+	unique_ptr<Book> book{ createBook1()};
+
+	QEOrm::instance().save( book.get());
+	QVERIFY( book->id != 0);
 }
 
 void QEOrmTest::checkSaveReferences()
 {
-	Book book;
-	book.title = "Effective Modern C++";
-	book.author = "Scott Meyers";
-	book.pages = 303;
-  	book.binSignature = QCryptographicHash::hash( book.title.toUtf8(),
-		QCryptographicHash::Sha256);
-
-	// Save book to get its id.
-	QEOrm::instance().save( &book);
-	QVERIFY( book.id != 0);
+	unique_ptr<Book> book{ createBook1()};
+	
+	QEOrm::instance().save( book.get());
+	QVERIFY( book->id != 0);
 
 	// Chapters don't use autoincrement id, so we generate them from book.id
-	Chapter ch1( nullptr, "Deducing Types");
-	ch1.text = "- During template type deduction, arguments that are references "
-		"are treated as non-references, i.e., their reference-ness is ignored."
-		"\n - When deducing types for universal reference parameters, lvalue "
-		"arguments get special treatment.";
-	ch1.id = 1 + book.id * 1000;
-	ch1.setObjectName( "Chapter 1");
-	
-	Chapter ch2( nullptr, "Understand auto type deduction");
-	ch2.text = " - auto type deduction is usually the same as template type "
-		"deduction, but auto type  deduction  assumes  that  a  braced  "
-		"initializer  represents  a  std::initializer_list, and template type"
-		"deduction doesn’t.\n -  auto in  a  function  return  type  or  a "
-		"lambda  parameter  implies  template  type deduction, not auto type "
-		"deduction.";
-	ch2.id = 2 + book.id * 1000;
+	unique_ptr<Chapter> ch1{ createBookChapter1( book->id)};
+	unique_ptr<Chapter> ch2{ createBookChapter2( book->id)};
 
 	// Update book and save.
-	book.chapters = { ch1, ch2};
-	QEOrm::instance().save( &book);
+	book->chapters = { *ch1, *ch2};
+	QEOrm::instance().save( book.get());
 	
 	Book loadedBook;
-	QEOrm::instance().load( QVariantList{ book.id }, &loadedBook);
+	QEOrm::instance().load( QVariantList{ book->id }, &loadedBook);
 	
-	QVERIFY( book == loadedBook);
+	QVERIFY( *book == loadedBook);
+}
+
+void QEOrmTest::checkDelete()
+{
+	unique_ptr<Book> book{ createBook1()};
+
+	QEOrm::instance().save( book.get());
+	QVERIFY( book->id != 0);
+
+	QEOrm::instance().erase( book.get());
+
+	Book loadedBook;
+	QEOrm::instance().load( QVariantList{ book->id }, &loadedBook);
+	QVERIFY( loadedBook.id == 0);
 }
 
 

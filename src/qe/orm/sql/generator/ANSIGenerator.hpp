@@ -60,6 +60,10 @@ namespace qe { namespace orm { namespace sql {
 			QString selectionUsingProperties( const entity::Model& model,
 					const entity::EntityDefList& entities) const override;
 
+			QString deleteStatement( 
+				const entity::Model& model) const override; 
+
+
 		protected:
 			QString projection( const entity::Model &model) const override;
 

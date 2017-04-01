@@ -26,6 +26,7 @@
 #include "QEOrm.hpp"
 #include "SaveHelper.hpp"
 #include "LoadHelper.hpp"
+#include "DeleteHelper.hpp"
 #include "SerializedItem.hpp"
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
@@ -105,6 +106,9 @@ QEOrm &QEOrm::instance()
 QEOrm::QEOrm()
 {}
 
+// Save operations
+// =================================================================
+
 void QEOrm::save( QObject* const source) const
 {
 	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
@@ -138,6 +142,8 @@ void QEOrm::save( ObjectContext& context, const ModelShd& model,
 	saver.save( context, model, source, target);
 }
 
+// Load operations
+// =================================================================
 
 void QEOrm::load( ObjectContext& context, const ModelShd& model, 
 	const AbstractSerializedItem *const source, QObject *const target) const
@@ -169,6 +175,30 @@ void QEOrm::load(QVariantList&& primaryKey, QObject*const target) const
 	
 	AbstractSerializer::load( ormSource.get(), target);
 }
+
+// Delete operations
+// =================================================================
+
+void QEOrm::erase( QObject* const source, 
+	SerializedItem* const target) const 
+{
+	ObjectContext context;
+	DeleteHelper dh;
+	ModelShd model = ModelRepository::instance().model( source->metaObject());
+	
+	dh.erase( context, model, source, target);
+}
+
+void QEOrm::erase( QObject* const source) const
+{
+	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
+	SerializedItem si( helper);
+
+	erase( source, &si); 
+}
+
+// Other stuff
+// ==================================================================
 
 ModelShd QEOrm::getModelOrThrow( const QMetaObject* metaObject) const
 {
