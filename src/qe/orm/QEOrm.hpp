@@ -65,7 +65,6 @@ namespace qe { namespace orm {
 			
 			void erase( QObject* const source) const;
 
-#if 1 
 			/// @brief It finds all database objects which properties are equal to
 			/// values specified on @p properties map.
 			/// @param properties Properties map.
@@ -77,14 +76,18 @@ namespace qe { namespace orm {
 					const std::map<QString, QVariant>& properties,
 					QObject* parent = nullptr) const
 				{
-					entity::ModelShd model = getModelOrThrow( & T::staticMetaObject); 
+					entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
+					checkAndCreateModel( model, source);
 					
 					FindHelper findHelper;
 					return ResultSet<T>( 
 						findHelper.findEqualProperty( *model, source, properties), 
 						parent);
 				}
-#endif
+
+		private:	
+			void checkAndCreateModel( const entity::ModelShd& model,
+				const SerializedItem* const target) const;
 
 		protected:
 			void save( qe::entity::ObjectContext& context, 

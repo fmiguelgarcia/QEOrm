@@ -211,4 +211,10 @@ ModelShd QEOrm::getModelOrThrow( const QMetaObject* metaObject) const
 	return model;
 }
 
-
+void QEOrm::checkAndCreateModel( const ModelShd& model, 
+	const SerializedItem* const target) const
+{
+	SaveHelper saver;
+	checkAndCreateDatabaseTables( saver, model, 
+		const_cast<SerializedItem*>(target), m_checkedTables, m_checkedTablesMtx);
+}
