@@ -362,7 +362,10 @@ QString ANSIGenerator::whereClausure( const EntityDefList &colDefList) const
 	for( const auto& colDef : colDefList) 
 		pkWhereClause << ( colDef->entityName() 
 				% QStringLiteral(" = :") 
-				% colDef->entityName()); 
+				% colDef->entityName());
+
+	if( pkWhereClause.empty())	
+		pkWhereClause << QStringLiteral( " 1 = 1 ");
 	
 	return pkWhereClause.join( QStringLiteral(" AND "));
 }
