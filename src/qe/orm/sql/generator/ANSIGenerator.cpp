@@ -31,6 +31,7 @@
 #include <QDateTime>
 #include <QStringBuilder>
 #include <QTextStream>
+#include <QMetaEnum>
 #include <algorithm>
 
 using namespace qe::orm::sql;
@@ -185,7 +186,7 @@ QString ANSIGenerator::createTableIfNotExistsStatement( const Model& model) cons
 		if( eDef->mappingType() == EntityDef::MappingType::NoMappingType
 			|| eDef->mappingType() == EntityDef::MappingType::ManyToOne)
 		{
-			sqlColumnDef << makeColumnDefinition( *eDef);
+			sqlColumnDef << makeColumnDefinition( model, *eDef);
 		}
 	}
 
@@ -255,7 +256,8 @@ QString ANSIGenerator::selectionUsingForeignKey( const Model& model,
 	return stmt;
 }
 
-QString ANSIGenerator::makeColumnDefinition( const EntityDef& column) const
+QString ANSIGenerator::makeColumnDefinition( const Model& model,
+	const EntityDef& column) const
 {
 	QString sqlColumnDef;
 	QTextStream os( &sqlColumnDef);
@@ -266,7 +268,7 @@ QString ANSIGenerator::makeColumnDefinition( const EntityDef& column) const
 	os << quotationMark << column.entityName() << quotationMark << space;
 		
 	// type 
-	os << databaseType( column.propertyType(), column.maxLength()) << space;
+	os << databaseType( column) << space;
 	
 	// Null
 	os << (( column.isNullable() )
@@ -284,11 +286,15 @@ QString ANSIGenerator::makeColumnDefinition( const EntityDef& column) const
 	return sqlColumnDef;
 }
 
-QString ANSIGenerator::databaseType(const int propertyType, 
-		const uint size) const
+QString ANSIGenerator::databaseType(
+	const EntityDef& eDef) const
 {
+	if( eDef.isEnum())
+		return databaseEnumerationType( eDef);
+
 	QString dbType;
-	switch( propertyType)
+	const int size = eDef.maxLength();
+	switch( eDef.propertyType())
 	{
 		case QMetaType::Bool:
 			dbType = QStringLiteral( "BOOL");
@@ -350,6 +356,27 @@ QString ANSIGenerator::databaseType(const int propertyType,
 		default:
 			dbType = QStringLiteral( "INT");
 	}
+	return dbType;
+}
+
+QString ANSIGenerator::databaseEnumerationType( 
+	const EntityDef& eDef) const
+{
+	QString dbType;
+
+	QMetaEnum* me = eDef.enumerator();
+	if( me)
+	{
+		QStringList enumKeys;
+
+		for( int i = 0; i < me->keyCount(); ++i)
+			enumKeys << QString( "'%1'").arg( me->key(i));
+
+		dbType = QStringLiteral( "ENUM(")
+			% enumKeys.join( ", ") 
+			% QStringLiteral( ") ");
+	}
+
 	return dbType;
 }
 

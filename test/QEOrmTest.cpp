@@ -43,6 +43,7 @@ namespace {
 		Book *book = new Book;
 		book->title = "Effective Modern C++";
 		book->author = "Scott Meyers";
+		book->setType( Book::Type::Technical);
 		book->pages = 303;
 		book->binSignature = QCryptographicHash::hash( book->title.toUtf8(),
 				QCryptographicHash::Sha256);	

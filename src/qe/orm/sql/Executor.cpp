@@ -207,7 +207,6 @@ void Executor::logQuery( QSqlQuery& query) const
 void bindNoMappingColumns( const Model& model, QSqlQuery& query, 
 		const QObject* source)
 {
-#if 1 
 	for( const auto& colDef: model.entityDefs())
 	{
 		if( colDef->mappingType() == EntityDef::MappingType::NoMappingType)
@@ -215,23 +214,11 @@ void bindNoMappingColumns( const Model& model, QSqlQuery& query,
 			QVariant value = source->property( colDef->propertyName());
 			if( colDef->isAutoIncrement() && value.toInt() == 0)
 				value = QVariant();
+			if( colDef->isEnum())
+				value = colDef->enumerator()->valueToKey( value.toInt());
 			query.bindValue( (QStringLiteral(":") % colDef->entityName()), value);
 		}
 	}
-#else
-	const auto queryParamList = query.boundValues().keys();
-	for( const auto& queryParam: queryParamList)
-	{
-		const auto& eDef = model.findEntityDef( Model::findByEntityName{ queryParam});
-		if( eDef)
-		{
-			QVariant value = source->property( eDef->propertyName());
-			if( eDef->isAutoIncrement() && value.toInt() == 0)
-				value = QVariant();
-			query.bindValue( (QStringLiteral(":") % eDef->entityName()), value);
-		}
-	}
-#endif
 }
 
 void bindMappingOneToMany( const Model& model, QSqlQuery& query,  

@@ -150,8 +150,9 @@ QString CachedGenerator::whereClausure( const EntityDefList &colDefList) const
 QString CachedGenerator::autoIncrementKeyWord() const
 { return m_generator->autoIncrementKeyWord(); }
 
-QString CachedGenerator::makeColumnDefinition( const EntityDef& column) const
-{ return m_generator->makeColumnDefinition( column);}
+QString CachedGenerator::makeColumnDefinition( const Model& model,
+	const EntityDef& column) const
+{ return m_generator->makeColumnDefinition( model, column);}
 
 QString CachedGenerator::makePrimaryKeyDefinition( const Model &model) const
 { return m_generator->makePrimaryKeyDefinition( model);}
@@ -159,5 +160,10 @@ QString CachedGenerator::makePrimaryKeyDefinition( const Model &model) const
 QString CachedGenerator::makeForeignKeyDefinition( const Model& model) const
 { return m_generator->makeForeignKeyDefinition( model);}
 
-QString CachedGenerator::databaseType( const int propertyType, const uint size) const
-{ return m_generator->databaseType( propertyType, size);}
+QString CachedGenerator::databaseType(
+	const EntityDef& eDef) const
+{ return m_generator->databaseType( eDef);}
+
+QString CachedGenerator::databaseEnumerationType( 
+	const EntityDef& eDef) const 
+{ return m_generator->databaseEnumerationType( eDef);}

@@ -34,11 +34,12 @@ using namespace qe::orm::sql;
 QString SQLiteGenerator::autoIncrementKeyWord() const
 { return QStringLiteral("AUTOINCREMENT"); }
 
-QString SQLiteGenerator::makeColumnDefinition( const EntityDef& column) const
+QString SQLiteGenerator::makeColumnDefinition( 
+	const Model& model, const EntityDef& column) const
 {
 	QString sqlColumnDef;
 	if( !column.isAutoIncrement())
-			sqlColumnDef = ANSIGenerator::makeColumnDefinition( column);
+			sqlColumnDef = ANSIGenerator::makeColumnDefinition( model, column);
 	else
 		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY %2 ")
 			.arg( column.entityName())
@@ -58,11 +59,15 @@ QString SQLiteGenerator::makePrimaryKeyDefinition( const Model &model) const
 	return sqlStmt;
 }
 
-QString SQLiteGenerator::databaseType( const int propertyType, 
-	const uint size) const 
+QString SQLiteGenerator::databaseType( 
+	const EntityDef& eDef) const 
 {
+	if( eDef.isEnum())
+		return databaseEnumerationType( eDef);
+
 	QString dbType;
-	switch( propertyType)
+	const int size = eDef.maxLength();
+	switch( eDef.propertyType())
 	{
 		case QMetaType::Bool:
 			dbType = QStringLiteral( "BOOLEAN");
@@ -119,5 +124,11 @@ QString SQLiteGenerator::databaseType( const int propertyType,
 			dbType = QStringLiteral( "INTEGER");
 	}
 	return dbType;
+}
+
+QString SQLiteGenerator::databaseEnumerationType( 
+	const EntityDef& ) const 
+{
+	return QStringLiteral( "TEXT");
 }
 

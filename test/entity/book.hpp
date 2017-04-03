@@ -24,10 +24,23 @@ class Book
 	Q_PROPERTY( int entityDisable MEMBER entityDisable )
 	Q_CLASSINFO( "entityDisable", "@qe.entity.isEnabled=false")
 
+	Q_PROPERTY( Type type READ type WRITE setType)
+	Q_CLASSINFO( "type", "@qe.entity.name=bookType")
+
 	Q_PROPERTY( QVariantList chapters READ chaptersAdapter WRITE chaptersAdapter)
 	Q_CLASSINFO( "chapters", "@qe.entity.mapping.entity=Chapter @qe.entity.mapping.type=OneToMany")
 	
 	public:
+		enum Type {
+			Unknown,
+			Technical,
+			Drama,
+			History,
+			SelfHelp,
+			Fantasy
+		};
+		Q_ENUM( Type);
+
 		int id = 0;
 		QString title;
 		QString author;
@@ -39,4 +52,10 @@ class Book
 		qe::entity::OneToManyAdapter< decltype(chapters)> chaptersAdapter{ chapters};
 		
 		bool operator == (const Book& other) const;
+		
+		Type type() const;
+		void setType( const Type type); 
+
+	private:
+		Type m_type = Type::Unknown;
 };

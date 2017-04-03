@@ -79,7 +79,8 @@ namespace qe { namespace orm { namespace sql {
 			QString autoIncrementKeyWord() const override;
 
 			QString makeColumnDefinition( 
-					const entity::EntityDef& column) const override;
+				const entity::Model& model,
+				const entity::EntityDef& column) const override;
 			
 			QString makePrimaryKeyDefinition(
 					const entity::Model &model) const override;
@@ -87,7 +88,10 @@ namespace qe { namespace orm { namespace sql {
 			QString makeForeignKeyDefinition( 
 					const entity::Model& model) const override;
 
-			QString databaseType( const int propertyType, 
-					const uint size) const override;
+			QString databaseType( 
+				const entity::EntityDef& eDef) const override; 
+					
+			QString databaseEnumerationType( 
+				const entity::EntityDef& eDef) const override;
 	};
 }}}

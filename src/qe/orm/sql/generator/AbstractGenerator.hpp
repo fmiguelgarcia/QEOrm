@@ -97,7 +97,8 @@ namespace qe { namespace orm { namespace sql {
 			/// @brief It generates the SQL partial statement for the 
 			/// column definition @p column. 
 			virtual QString makeColumnDefinition( 
-					const entity::EntityDef& column) const = 0;
+				const entity::Model& model,
+				const entity::EntityDef& column) const = 0;
 
 			/// @brief It generates the SQL partial statement for primary.
 			virtual QString makePrimaryKeyDefinition(
@@ -111,7 +112,12 @@ namespace qe { namespace orm { namespace sql {
 			/// @param size In case of strings, you can limit the 
 			/// number of characters. By default it is 0, which means no 
 			/// limitation at all.
-			virtual QString databaseType( const int propertyType, 
-					const uint size) const = 0;
+			virtual QString databaseType( 
+					const entity::EntityDef& eDef) const = 0;
+
+			/// @brief It generates an enumeration type.
+			virtual QString databaseEnumerationType( 
+					const entity::EntityDef& eDef) const = 0;
+			
 	};
 }}}	
