@@ -1,4 +1,5 @@
-#include "QEOrm.hpp"
+#include <qe/orm/QEOrm.hpp>
+using namespace qe::orm;
 
 int main(int argc, char** argv)
 {
