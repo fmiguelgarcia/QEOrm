@@ -24,8 +24,14 @@ class QEOrmConan(ConanFile):
         self.copy( pattern="LICENSE.LGPLv3", dst="share/qe/orm")
         self.copy( pattern="libQEOrm.so*", dst="lib", src="src/qe/orm",
                 links=True)
-        self.copy( pattern="libQEOrm.dll", dst="lib", src="src/qe/orm/bin")
-        self.copy( pattern="libQEOrm.dll.a", dst="lib", src="src/qe/orm/lib")
+        if self.settings.os == "Windows":
+            libNames = ["QEOrm", "libQEOrm"]
+            libExts = [".dll", ".lib", ".dll.a", ".pdb"]
+            for libName in libNames:
+                for libExt in libExts:
+                    filePattern = "**/" + libName + libExt
+                    self.copy( pattern=filePattern, dst="lib", src="src/qe/orm", keep_path=False)
+
 
     def package_info(self):
         self.cpp_info.libs.extend(["QEOrm"])
