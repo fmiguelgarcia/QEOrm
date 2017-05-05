@@ -24,6 +24,7 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <QObject>
 #include <QMetaObject>
 #include <QSqlQuery>
@@ -33,7 +34,7 @@ namespace qe { namespace orm {
 
 	template< class T> class ResultSet;
 
-	class ResultSetIteratorBase
+	class QEORM_EXPORT ResultSetIteratorBase
 		: public std::iterator< std::forward_iterator_tag, QObject*, int,
 			QObject**, QObject*>
 	{

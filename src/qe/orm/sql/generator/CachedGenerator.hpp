@@ -16,6 +16,7 @@
 #pragma once
 #include <qe/orm/sql/generator/AbstractGenerator.hpp>
 #include <mutex>
+#include <array>
 
 namespace qe { namespace orm { namespace sql {
 

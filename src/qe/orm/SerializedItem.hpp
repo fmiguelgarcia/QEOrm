@@ -25,12 +25,13 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <qe/orm/sql/Executor.hpp>
 #include <qe/entity/AbstractSerializedItem.hpp>
 
 namespace qe { namespace orm { 
 	
-	class SerializedItem 
+	class QEORM_EXPORT SerializedItem
 		: public qe::entity::AbstractSerializedItem
 	{
 		public:

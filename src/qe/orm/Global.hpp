@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 francisco miguel garcia rodriguez  
+ * Copyright (C) 2017 francisco miguel garcia rodriguez
  * Contact: http://www.dmious.com/qe/licensing/
  *
  * This file is part of the QE Common module of the QE Toolkit.
@@ -16,7 +16,7 @@
  * GNU Lesser General Public License Usage
  * Alternatively, this file may be used under the terms of the GNU Lesser
  * General Public License version 3 as published by the Free
- * Software Foundation and appearing in the file LICENSE.LGPLv3 
+ * Software Foundation and appearing in the file LICENSE.LGPLv3
  * included in the packaging of this file. Please review the
  * following information to ensure the GNU Lesser General Public License
  * requirements will be met: https://www.gnu.org/licenses/lgpl.html and
@@ -24,23 +24,12 @@
  *
  * $QE_END_LICENSE$
  */
+
 #pragma once
-#include <QString>
-#include <QVariant>
-#include <map>
 
-class QSqlQuery;
-namespace qe { namespace entity { class Model; }}
-namespace qe { namespace orm { 
+#if defined(QEORM_LIBRARY)
+#  define QEORM_EXPORT Q_DECL_EXPORT
+#else
+#  define QEORM_EXPORT Q_DECL_IMPORT
+#endif
 
-	class SerializedItem;
-	class FindHelper
-	{
-		public:
-			QSqlQuery findEqualProperty( 
-				const entity::Model& model,
-				const SerializedItem* const source,
-				const std::map<QString, QVariant>& properties) const;
-
-	};
-}}

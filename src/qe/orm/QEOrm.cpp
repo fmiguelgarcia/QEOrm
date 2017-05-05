@@ -40,6 +40,11 @@ using namespace qe::common;
 using namespace std;
 
 namespace {
+	QString defaultConnectionName()
+	{
+		return QLatin1String( QSqlDatabase::defaultConnection);
+	}
+
 	/// @brief Utility to use double check locking and create/insert objects
 	/// into a container.
 	template< typename C, typename K, typename M>
@@ -111,7 +116,7 @@ QEOrm::QEOrm()
 
 void QEOrm::save( QObject* const source) const
 {
-	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
+	sql::Executor helper( defaultConnectionName());
 	SerializedItem si( helper);
 
 	save( source, &si); 
@@ -191,7 +196,7 @@ void QEOrm::erase( QObject* const source,
 
 void QEOrm::erase( QObject* const source) const
 {
-	sql::Executor helper( QLatin1String( QSqlDatabase::defaultConnection));
+	sql::Executor helper( defaultConnectionName());
 	SerializedItem si( helper);
 
 	erase( source, &si); 

@@ -25,6 +25,7 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <qe/entity/AbstractSerializer.hpp>
 #include <qe/entity/Types.hpp>
 #include <qe/orm/ResultSet.hpp>
@@ -40,7 +41,7 @@ namespace qe { namespace orm {
 	/// @brief It is the helper class to save and load objects from database.
 	/// It also create the tables if they does not exist on database.
 	/// It uses the default database connection.
-	class QEOrm : public qe::entity::AbstractSerializer
+	class QEORM_EXPORT QEOrm : public qe::entity::AbstractSerializer
 	{
 		public:
 			/// @brief It returns the singleton instance.

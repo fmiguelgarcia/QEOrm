@@ -7,6 +7,7 @@ set( QEOrm_MINOR_VERSION 1)
 set( QEOrm_BUILD_VERSION 0)
 
 set( QEOrm_SRCS
+	Global.hpp
 	SerializedItem.cpp
 	LoadHelper.cpp SaveHelper.cpp FindHelper.cpp DeleteHelper.cpp
 	ResultSet.cpp
@@ -14,6 +15,7 @@ set( QEOrm_SRCS
 add_subdirectory( sql)
 
 # Link
+add_definitions( -DQEORM_LIBRARY)
 add_library( QEOrm SHARED ${QEOrm_SRCS})
 target_link_libraries( QEOrm 
 	QEOrmSql

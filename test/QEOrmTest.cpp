@@ -81,8 +81,11 @@ QEOrmTest::QEOrmTest( QObject* parent)
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 
-	//	db.setDatabaseName(":memory:");
+#ifdef Q_OS_LINUX
 	db.setDatabaseName("/tmp/QEOrmTest.db");
+#else
+	db.setDatabaseName(":memory:");
+#endif
 	QVERIFY( db.open() );
 }
 
@@ -90,7 +93,12 @@ void QEOrmTest::checkSaveAutoIncrement()
 {
 	unique_ptr<Book> book{ createBook1()};
 
-	QEOrm::instance().save( book.get());
+	try{
+		QEOrm::instance().save( book.get());
+	}catch( std::exception& stde){
+		QFAIL(stde.what());
+	}
+
 	QVERIFY( book->id != 0);
 }
 
