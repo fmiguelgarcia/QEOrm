@@ -26,6 +26,7 @@
  */
 
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <QString>
 #include <map>
 #include <memory>
@@ -34,7 +35,7 @@
 namespace qe { namespace orm { namespace sql {
 
 	class AbstractGenerator;
-	class GeneratorRepository
+	class QEORM_EXPORT GeneratorRepository
 	{
 		public:
 			static GeneratorRepository& instance();

@@ -25,6 +25,7 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <qe/entity/Types.hpp>
 #include <QLoggingCategory>
 #include <QVariantList>
@@ -35,7 +36,7 @@ namespace qe { namespace orm { namespace sql
 {
 	Q_DECLARE_LOGGING_CATEGORY( lcExecutor);
 	class Generator;
-	class Executor
+	class QEORM_EXPORT Executor
 	{
 		public:
 			/// @param connName SQL database connection name. If it is empty, 

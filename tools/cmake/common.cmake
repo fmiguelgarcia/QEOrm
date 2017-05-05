@@ -20,6 +20,7 @@ endif()
 
 # Include common directory
 include_directories( ${CMAKE_SOURCE_DIR}/src/)
+add_definitions( -DQEORM_LIBRARY)
 
 # C++ 11
 #target_compile_features( <target> PUBLIC cxx_auto_type cxx_constexpr
