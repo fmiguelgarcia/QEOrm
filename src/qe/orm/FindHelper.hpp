@@ -25,6 +25,7 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <QString>
 #include <QVariant>
 #include <map>
@@ -34,7 +35,7 @@ namespace qe { namespace entity { class Model; }}
 namespace qe { namespace orm { 
 
 	class SerializedItem;
-	class FindHelper
+	class QEORM_EXPORT FindHelper
 	{
 		public:
 			QSqlQuery findEqualProperty( 

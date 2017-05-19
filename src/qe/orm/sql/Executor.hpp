@@ -43,8 +43,8 @@ namespace qe { namespace orm { namespace sql
 			/// the default connection will be used.
 			explicit Executor( const QString& connName = QString());
 			Executor( const Executor& helper);
-
 			virtual ~Executor();
+
 			int dbmsType() const;
 
 			QSqlQuery execute( const QString& stmt, const QVariantList& params,

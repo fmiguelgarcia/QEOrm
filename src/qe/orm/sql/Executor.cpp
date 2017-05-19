@@ -55,9 +55,10 @@ Executor::Executor( const QString& connName)
 }
 
 Executor::Executor( const Executor& other) = default;
-			
-Executor::~Executor() = default;
-			
+
+Executor::~Executor()
+{}
+
 int Executor::dbmsType() const
 { return m_dbmsType;}
 

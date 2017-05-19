@@ -24,12 +24,13 @@
  * $QE_END_LICENSE$
  */
 #pragma once
+#include <qe/orm/Global.hpp>
 #include <qe/entity/Types.hpp>
 
 namespace qe { namespace orm { 
 
 	class SerializedItem;
-	class DeleteHelper 
+	class QEORM_EXPORT DeleteHelper
 	{
 		public:
 			void erase( entity::ObjectContext& context, 
