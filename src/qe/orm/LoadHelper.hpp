@@ -30,17 +30,23 @@
 
 class QSqlRecord;
 namespace qe { namespace orm { 
-	
+
+	class LoadHelperPrivate;	
 	class SerializedItem;
 	class LoadHelper 
 	{
 		public:
+			virtual ~LoadHelper();
+
 			void load( entity::ObjectContext& context, 
 				const entity::ModelShd& model, const SerializedItem *const source, 
 				QObject *const target) const;
 
 			void loadObjectFromRecord( const entity::Model& model, 
 				const QSqlRecord& record, QObject *const target) const;
+
+		protected:
+			LoadHelperPrivate * d_ptr;
 
 		private:
 			void loadOneToMany( entity::ObjectContext& context, 
@@ -51,5 +57,7 @@ namespace qe { namespace orm {
 				entity::ObjectContext& context, const entity::Model& refModel,
 				const entity::RelationDef& fkDef, const SerializedItem* const source,
 				const QMetaObject* refMetaObjEntity, QObject* const target) const;
+
+			Q_DECLARE_PRIVATE( LoadHelper);
 	};
 }}

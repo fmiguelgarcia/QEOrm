@@ -37,6 +37,8 @@ using namespace qe::orm;
 using namespace qe::entity;
 using namespace std;
 
+FindHelper::~FindHelper()
+{}
 
 QSqlQuery FindHelper::findEqualProperty(
 	const	Model& model,

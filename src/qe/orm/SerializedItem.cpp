@@ -42,6 +42,8 @@ SerializedItem::SerializedItem(
 		m_helper( std::move(helper))
 {}
 
+SerializedItem::~SerializedItem()
+{}
 
 SerializedItem::SerializedItem( const QVariantList& pkValues,
 	const Executor& helper)

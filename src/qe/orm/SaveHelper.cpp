@@ -111,6 +111,9 @@ namespace {
 // SaveHelper
 // ============================================================================
 
+SaveHelper::~SaveHelper()
+{}
+
 void SaveHelper::save( ObjectContext& context, const ModelShd& model, 
 	QObject *const source, SerializedItem* const target) const
 {

@@ -4,8 +4,8 @@ import multiprocessing
 
 class QEOrmConan(ConanFile):
     name = "QEOrm"
-    version = "0.1.0"
-    requires = "QEEntity/0.1.0@fmiguelgarcia/stable"
+    version = "1.0.0"
+    requires = "QEEntity/1.0.0@fmiguelgarcia/stable"
     settings = "os", "compiler", "build_type", "arch"
     license = "https://www.gnu.org/licenses/lgpl-3.0-standalone.html"
     generators = "cmake"
@@ -14,10 +14,9 @@ class QEOrmConan(ConanFile):
     exports_sources = ["src/*", "test/*", "tools/*", "CMakeLists.txt"]
 
     def build(self):
-        cmake = CMake( self.settings)
-        parallel_build_flags = ("-- -j %d " % multiprocessing.cpu_count()) if os_info.is_linux else ""
-        self.run( "cmake %s %s" % (self.conanfile_directory, cmake.command_line))
-        self.run( "cmake --build . %s %s"  % (cmake.build_config, parallel_build_flags)) 
+        cmake = CMake( self)
+        cmake.configure()
+        cmake.build()
 
     def package(self):
         self.copy( pattern="*.hpp", dst="include/qe/orm/", src="src/qe/orm")

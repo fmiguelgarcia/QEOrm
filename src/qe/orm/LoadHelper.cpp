@@ -45,6 +45,9 @@ using namespace qe::entity;
 using namespace qe::orm;
 using namespace std;
 
+LoadHelper::~LoadHelper()
+{}
+
 void LoadHelper::load( ObjectContext& context, const ModelShd& model, 
 	const SerializedItem *const source, QObject *const target) const
 {

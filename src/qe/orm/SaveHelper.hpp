@@ -27,10 +27,14 @@
 #include <qe/entity/Types.hpp>
 
 namespace qe { namespace orm { 
+	class SaveHelperPrivate;
 	class SerializedItem;
+
 	class SaveHelper
 	{
 		public:
+			virtual ~SaveHelper();
+
 			void save( entity::ObjectContext& context, 
 				const entity::ModelShd& model, QObject *const source, 
 				SerializedItem* const target) const;
@@ -42,6 +46,11 @@ namespace qe { namespace orm {
 			void saveOneToMany( entity::ObjectContext& context, 
 				const entity::Model &model, QObject *source, 
 				SerializedItem* const target) const;
+
+			SaveHelperPrivate *d_ptr;
+
+		private:
+			Q_DECLARE_PRIVATE( SaveHelper);
 	};
 }}
 	

@@ -33,15 +33,23 @@
 class QSqlQuery;
 namespace qe { namespace entity { class Model; }}
 namespace qe { namespace orm { 
-
+	class FindHelperPrivate;
 	class SerializedItem;
+
 	class QEORM_EXPORT FindHelper
 	{
 		public:
+			virtual ~FindHelper();
+
 			QSqlQuery findEqualProperty( 
 				const entity::Model& model,
 				const SerializedItem* const source,
 				const std::map<QString, QVariant>& properties) const;
 
+		protected:
+			FindHelperPrivate *d_ptr;
+
+		private:
+			Q_DECLARE_PRIVATE( FindHelper);
 	};
 }}

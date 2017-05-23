@@ -35,7 +35,8 @@
 #include <mutex>
 
 namespace qe { namespace orm {
-	
+	class QEOrmPrivate;
+		
 	/// @todo Add support for QSqlQuery::isForwardOnly
 	/// @todo Check table version. 
 	/// @brief It is the helper class to save and load objects from database.
@@ -86,10 +87,6 @@ namespace qe { namespace orm {
 						parent);
 				}
 
-		private:	
-			void checkAndCreateModel( const entity::ModelShd& model,
-				const SerializedItem* const target) const;
-
 		protected:
 			void save( qe::entity::ObjectContext& context, 
 					const qe::entity::ModelShd& model, QObject *const source, 
@@ -111,8 +108,12 @@ namespace qe { namespace orm {
 
 			entity::ModelShd getModelOrThrow( const QMetaObject* metaObject) const;
 
-		private:
+			void checkAndCreateModel( const entity::ModelShd& model,
+				const SerializedItem* const target) const;
+
 			mutable std::mutex m_checkedTablesMtx;
 			mutable std::set<QString> m_checkedTables;
+
+			Q_DECLARE_PRIVATE( QEOrm);
 	};
 }}

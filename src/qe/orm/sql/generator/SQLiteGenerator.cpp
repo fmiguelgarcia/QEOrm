@@ -31,6 +31,9 @@
 using namespace qe::entity;
 using namespace qe::orm::sql;
 
+SQLiteGenerator::~SQLiteGenerator()
+{}
+
 QString SQLiteGenerator::autoIncrementKeyWord() const
 { return QStringLiteral("AUTOINCREMENT"); }
 

@@ -31,16 +31,24 @@
 #include <iterator>
 
 namespace qe { namespace orm {
-
+	class ResultSetIteratorBasePrivate;
 	template< class T> class ResultSet;
 
 	class QEORM_EXPORT ResultSetIteratorBase
 		: public std::iterator< std::forward_iterator_tag, QObject*, int,
 			QObject**, QObject*>
 	{
+		public:
+			virtual ~ResultSetIteratorBase();
+
 		protected:
 			QObject* createInstance( const QMetaObject* mo, QObject* parent) const;
 			void loadFromQuery( QObject *o, QSqlQuery& query) const;
+
+			ResultSetIteratorBasePrivate *d_ptr;
+
+		private:
+			Q_DECLARE_PRIVATE( ResultSetIteratorBase);
 	};
 
 	

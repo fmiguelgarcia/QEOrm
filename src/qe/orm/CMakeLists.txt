@@ -2,8 +2,8 @@
 include(${CMAKE_SOURCE_DIR}/tools/cmake/common.cmake)
 
 # Source
-set( QEOrm_MAYOR_VERSION 0)
-set( QEOrm_MINOR_VERSION 1)
+set( QEOrm_MAYOR_VERSION 1)
+set( QEOrm_MINOR_VERSION 0)
 set( QEOrm_BUILD_VERSION 0)
 
 set( QEOrm_SRCS
@@ -13,9 +13,9 @@ set( QEOrm_SRCS
 	ResultSet.cpp
 	QEOrm.cpp )
 add_subdirectory( sql)
+add_definitions( -DQEORM_LIBRARY)
 
 # Link
-add_definitions( -DQEORM_LIBRARY)
 add_library( QEOrm SHARED ${QEOrm_SRCS})
 target_link_libraries( QEOrm 
 	QEOrmSql

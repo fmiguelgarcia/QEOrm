@@ -30,7 +30,8 @@
 #include <qe/entity/AbstractSerializedItem.hpp>
 
 namespace qe { namespace orm { 
-	
+	class SerializedItemPrivate;
+		
 	class QEORM_EXPORT SerializedItem
 		: public qe::entity::AbstractSerializedItem
 	{
@@ -48,9 +49,13 @@ namespace qe { namespace orm {
 				const QVariantList& pkValues,
 				const sql::Executor& helper = sql::Executor());
 
+			~SerializedItem();
+
 			const sql::Executor& executor() const noexcept;
 
 		private:
 			sql::Executor m_helper;
+
+			Q_DECLARE_PRIVATE(SerializedItem);
 	};
 }}

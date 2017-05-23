@@ -28,14 +28,23 @@
 #include <qe/entity/Types.hpp>
 
 namespace qe { namespace orm { 
-
+	class DeleteHelperPrivate;
 	class SerializedItem;
+
 	class QEORM_EXPORT DeleteHelper
 	{
 		public:
+			virtual ~DeleteHelper();
+
 			void erase( entity::ObjectContext& context, 
 				const entity::ModelShd& model, QObject *const source, 
 				SerializedItem* const target) const;
+
+		protected:
+			DeleteHelperPrivate *d_ptr;
+
+		private:
+			Q_DECLARE_PRIVATE( DeleteHelper);
 	};
 }}
 	

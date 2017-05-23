@@ -36,6 +36,8 @@ namespace qe { namespace orm { namespace sql
 {
 	Q_DECLARE_LOGGING_CATEGORY( lcExecutor);
 	class Generator;
+	class ExecutorPrivate;
+
 	class QEORM_EXPORT Executor
 	{
 		public:
@@ -80,9 +82,13 @@ namespace qe { namespace orm { namespace sql
 		protected:
 			void logQuery( QSqlQuery& query) const;
 
+			ExecutorPrivate *d_ptr;
+
 		private:
 			QString m_connName;
 			int m_dbmsType;
+
+			Q_DECLARE_PRIVATE( Executor);
 	};
 }}}
 

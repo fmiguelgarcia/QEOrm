@@ -27,11 +27,13 @@
 #include <qe/orm/sql/generator/ANSIGenerator.hpp>
 
 namespace qe { namespace orm {  namespace sql {
+	class SQLiteGeneratorPrivate;
 
 	/// @brief It is an specialization of SQL generator for SQLite.
 	class SQLiteGenerator : public ANSIGenerator
 	{
 		public:
+			virtual ~SQLiteGenerator();
 
 		protected:
 			QString autoIncrementKeyWord() const override;
@@ -48,5 +50,8 @@ namespace qe { namespace orm {  namespace sql {
 
 			QString databaseEnumerationType( 
 				const entity::EntityDef& eDef) const override;
+
+		private:
+			Q_DECLARE_PRIVATE( SQLiteGenerator);
 	};
 }}}

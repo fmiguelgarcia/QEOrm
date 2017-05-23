@@ -33,16 +33,20 @@
 #include <mutex>
 
 namespace qe { namespace orm { namespace sql {
-
+	class GeneratorRepositoryPrivate;
 	class AbstractGenerator;
+
 	class QEORM_EXPORT GeneratorRepository
 	{
 		public:
 			static GeneratorRepository& instance();
-			~GeneratorRepository();
+			virtual ~GeneratorRepository();
 			
 			AbstractGenerator* generator( const int dbmsType);
-			
+	
+		protected:
+			GeneratorRepositoryPrivate* d_ptr;
+
 		private:
 			GeneratorRepository();
 			AbstractGenerator * createAndStoreGenerator( const int dbmsType);
@@ -52,5 +56,7 @@ namespace qe { namespace orm { namespace sql {
 			
 			Driver2GeneratorMap m_generatorByDriver;
 			std::mutex m_generatorByDriverMtx;
+
+			Q_DECLARE_PRIVATE( GeneratorRepository);
 	};
 }}}

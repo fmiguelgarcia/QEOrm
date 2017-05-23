@@ -32,6 +32,9 @@ using namespace qe::orm::sql;
 using namespace qe::orm;
 using namespace qe::entity;
 
+DeleteHelper::~DeleteHelper()
+{}
+
 void DeleteHelper::erase( ObjectContext& context, const ModelShd& model, 
 	QObject *const source, SerializedItem* const target) const
 {

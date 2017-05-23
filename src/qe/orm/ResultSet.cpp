@@ -35,6 +35,9 @@ using namespace qe::orm;
 using namespace qe::common;
 using namespace qe::entity;
 
+ResultSetIteratorBase::~ResultSetIteratorBase()
+{}
+
 QObject* ResultSetIteratorBase::createInstance( const QMetaObject* mo,
 		QObject* parent) const
 {

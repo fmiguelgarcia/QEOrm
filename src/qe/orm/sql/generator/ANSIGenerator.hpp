@@ -32,6 +32,7 @@
 #include <memory>
 
 namespace qe { namespace orm { namespace sql {
+	class ANSIGeneratorPrivate;
 
 	/// @brief This class generates all SQL statement required by QEOrm. 
 	///
@@ -93,5 +94,10 @@ namespace qe { namespace orm { namespace sql {
 					
 			QString databaseEnumerationType( 
 				const entity::EntityDef& eDef) const override;
+
+			ANSIGeneratorPrivate *d_ptr;
+
+		private:
+			Q_DECLARE_PRIVATE( ANSIGenerator);
 	};
 }}}
