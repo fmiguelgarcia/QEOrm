@@ -1,6 +1,4 @@
 from conans import ConanFile, CMake 
-from conans.tools import os_info
-import multiprocessing
 
 class QEOrmConan(ConanFile):
     name = "QEOrm"
