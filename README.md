@@ -5,7 +5,7 @@ The main target is to provide a FREE and open-source ORM over Qt.
 
 [![badge](https://img.shields.io/badge/conan.io-QEOrm%2F1.0.0-green.svg?logo=data:image/png;base64%2CiVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAMAAAAolt3jAAAA1VBMVEUAAABhlctjlstkl8tlmMtlmMxlmcxmmcxnmsxpnMxpnM1qnc1sn85voM91oM11oc1xotB2oc56pNF6pNJ2ptJ8ptJ8ptN9ptN8p9N5qNJ9p9N9p9R8qtOBqdSAqtOAqtR%2BrNSCrNJ/rdWDrNWCsNWCsNaJs9eLs9iRvNuVvdyVv9yXwd2Zwt6axN6dxt%2Bfx%2BChyeGiyuGjyuCjyuGly%2BGlzOKmzOGozuKoz%2BKqz%2BOq0OOv1OWw1OWw1eWx1eWy1uay1%2Baz1%2Baz1%2Bez2Oe02Oe12ee22ujUGwH3AAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfgBQkREyOxFIh/AAAAiklEQVQI12NgAAMbOwY4sLZ2NtQ1coVKWNvoc/Eq8XDr2wB5Ig62ekza9vaOqpK2TpoMzOxaFtwqZua2Bm4makIM7OzMAjoaCqYuxooSUqJALjs7o4yVpbowvzSUy87KqSwmxQfnsrPISyFzWeWAXCkpMaBVIC4bmCsOdgiUKwh3JojLgAQ4ZCE0AMm2D29tZwe6AAAAAElFTkSuQmCC)](http://www.conan.io/source/QEOrm/1.0.0/fmiguelgarcia/stable)
 
-## How use it
+## How to use it
 
 Let's go through an example to learn how to use **QEOrm** library.
 
@@ -45,7 +45,42 @@ Using those annotations, **QEOrm** will create (if it does not exist yet) a DB s
 
 ### Store objects into DB
 
+Insertion and update uses the same function: *QEOrm::instance().save(...)*.
+You have to setup the default database *before* use this function. 
+You are also able to use a custom database connection using *SerializedItem* object to indicate the name of the connection.
+
+But let's see an example:
+
+```C++
+	Book b1;
+	b1.id = 0;
+	b1.title = "Effective Modern C++";
+	b1.author = "Scott Meyers";
+
+	QEOrm::instance().save( &b1);
+
+	// b1.id is automatically updated!!!
+	if( b1.id == 0)
+		qCritical() << "Error: Book is NOT saved into DB";
+
+	b1.title = "Effective Modern C++ 11";
+	QEOrm::instance().save( &b1);
+	
+	// b1 is updated !!!	
+```
+
 ### Load objects from DB
+
+In order to load an object, you will need to know the values of the primary key:
+
+```C++
+	Book b2;
+
+	QEOrm::instance().load( {b1.id}, &b2);
+	
+	if( b1 != b2)
+		qCritial() << "Error!!!";
+```
 
 ## More details
 
@@ -86,10 +121,13 @@ Annotation              | Scope    | Description
  \@qe.entity.isParentExported    | class    | If it is true, parent class properties will be also exported. <br>By default, it is false.
  \@qe.entity.isNullable          | property | It indicates if DB column could be null. <br>By default, it is true
  \@qe.entity.isAutoIncrementable | property | It marks its DB column as auto_increment field. <br>Due to some DB constraints, this field should be only one, integer type and it will become a primary key if no other entity has been marked as primary key.
- \@qe.entity.mapping.type        | property | It refers the type of the relation. <br>See [Relations One to Many]()
- \@qe.entity.mapping.entity      | property | It sets the target entity in the relation. <br>See [Relations One to Many]()
+ \@qe.entity.mapping.type        | property | It refers the type of the relation. <br>See [Relations One to Many](#relations-one-to-many)
+ \@qe.entity.mapping.entity      | property | It sets the target entity in the relation. <br>See [Relations One to Many](#relations-one-to-many)
 
 ### Relations One to Many
+
+*TODO*, but you can see an example in source code of tests.
+There is a lot of pending-work here... I know, but step by step.
 
 ### Enum support
 Enum types are supported from Qt 5.5.0 version and it requires the use of **Q_ENUM** in the definition of the type.
