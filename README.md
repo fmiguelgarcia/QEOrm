@@ -138,6 +138,15 @@ You can see an example in source code of tests.
 The easiest way to use this library in your code is by [Conan Package Manager](https://www.conan.io).
 Please use the project setup that you can find in [QEOrm/1.0.0 Conan](https://www.conan.io/source/QEOrm/1.0.0/fmiguelgarcia/stable).
 
+If you use *CMake*, the steps after adding this dependency to your "conanfile.py" are as usual:
+```bash
+	$~/yourProject > mkdir build
+	$~/yourProject > cd build
+	$~/yourProject/build > conan install -s build_type=debug .. 
+	$~/yourProject/build > cmake -DCMAKE_BUILD_TYPE=Debug  .. 
+	$~/yourProject/build > cmake --build .
+```
+
 ## Versioning
 
 This library uses [Semantic Versioning](htpp://semver.org) and internal private implementation to provide a long-term, stable, and reusable binaries.
