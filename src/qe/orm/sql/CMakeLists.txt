@@ -4,6 +4,7 @@ add_subdirectory( generator)
 
 # Source
 set( QEOrmSql_SRCS
+	Types.hpp
 	GeneratorRepository.cpp
 	Executor.cpp )
 

@@ -24,8 +24,10 @@ class Book
 	Q_PROPERTY( int entityDisable MEMBER entityDisable )
 	Q_CLASSINFO( "entityDisable", "@qe.entity.isEnabled=false")
 
+#if QT_VERSION >= QT_VERSION_CHECK( 5, 5, 0)
 	Q_PROPERTY( Type type READ type WRITE setType)
 	Q_CLASSINFO( "type", "@qe.entity.name=bookType")
+#endif
 
 	Q_PROPERTY( QVariantList chapters READ chaptersAdapter WRITE chaptersAdapter)
 	Q_CLASSINFO( "chapters", "@qe.entity.mapping.entity=Chapter @qe.entity.mapping.type=OneToMany")
@@ -39,7 +41,9 @@ class Book
 			SelfHelp,
 			Fantasy
 		};
+#if QT_VERSION >= QT_VERSION_CHECK( 5, 5, 0)
 		Q_ENUM( Type);
+#endif
 
 		int id = 0;
 		QString title;

@@ -33,6 +33,10 @@
 #include <qe/entity/RelationDef.hpp>
 #include <qe/common/Exception.hpp>
 
+#if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
+#	include <qe/orm/sql/GeneratorRepository.hpp>
+#endif
+
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -74,11 +78,19 @@ Executor::Executor( const QString& connName)
 		
 
 	QSqlDatabase db = QSqlDatabase::database( connName, false);
+#if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
+	const QString driverName = db.driverName();
+	if( driverName == "QSQLITE")
+		m_dbmsType = QSqlDriver::SQLite;
+	else
+		m_dbmsType = QSqlDriver::UnknownDbms;
+#else
 	QSqlDriver* driver = db.driver();
 	if( driver)
 		m_dbmsType = static_cast<int>( driver->dbmsType());
 	else
 		m_dbmsType = QSqlDriver::UnknownDbms;
+#endif
 }
 
 Executor::Executor( const Executor& other) = default;

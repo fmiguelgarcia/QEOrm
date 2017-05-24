@@ -24,40 +24,15 @@
  *
  * $QE_END_LICENSE$
  */
-
 #pragma once
-#include <qe/orm/Global.hpp>
-#include <qe/orm/sql/Types.hpp>
-#include <QString>
-#include <map>
-#include <memory>
-#include <mutex>
+#include <QtGlobal>
 
+#if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
 namespace qe { namespace orm { namespace sql {
-	class GeneratorRepositoryPrivate;
-	class AbstractGenerator;
 
-	class QEORM_EXPORT GeneratorRepository
-	{
-		public:
-			static GeneratorRepository& instance();
-			virtual ~GeneratorRepository();
-
-			AbstractGenerator* generator( const int dbmsType);
-	
-		protected:
-			GeneratorRepositoryPrivate* d_ptr;
-
-		private:
-			GeneratorRepository();
-			AbstractGenerator * createAndStoreGenerator( const int dbmsType);
-		
-			using GeneratorShd = std::shared_ptr<AbstractGenerator>;
-			using Driver2GeneratorMap = std::map<int, GeneratorShd>;
-			
-			Driver2GeneratorMap m_generatorByDriver;
-			std::mutex m_generatorByDriverMtx;
-
-			Q_DECLARE_PRIVATE( GeneratorRepository);
-	};
+	enum QSqlDriver{
+		UnknownDbms,
+		SQLite
+	};	
 }}}
+#endif
