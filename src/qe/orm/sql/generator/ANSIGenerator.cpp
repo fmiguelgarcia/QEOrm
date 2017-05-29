@@ -271,10 +271,11 @@ QString ANSIGenerator::makeColumnDefinition( const Model& model,
 	os << databaseType( column) << space;
 	
 	// Null
-	os << (( column.isNullable() )
-		? QStringLiteral( "NULL ")
-		: QStringLiteral( "NOT NULL "));
-		
+	if( column.isAutoIncrement() || ! column.isNullable())
+		os << QStringLiteral( "NOT NULL ");
+	else
+		os << QStringLiteral( "NULL ");
+
 	// Default value
 	if( ! column.defaultValue().isNull() )
 		os << QStringLiteral( "DEFAULT ") << column.defaultValue().toString() << space;
