@@ -51,6 +51,16 @@ namespace qe { namespace orm {
 			Q_DECLARE_PRIVATE( ResultSetIteratorBase);
 	};
 
+	template< class T, typename ...Args >
+	class ResultSetValueBuilder {
+		public:
+			inline static T createInstance( Args&&... args)
+			{
+				T value( std::forward<Args...>(args...));
+				return value;
+			}
+	};
+
 	
 	template< class T>
 	class ResultSetIterator
@@ -78,6 +88,7 @@ namespace qe { namespace orm {
 			inline bool operator !=( const ResultSetIterator& other) const noexcept
 			{ return m_position != other.m_position;}
 
+#if 0
 			/// @brief It creates an object and loads it using the current
 			/// result set position.
 			T* operator *() const
@@ -90,11 +101,29 @@ namespace qe { namespace orm {
 				loadFromQuery( value, m_rs.m_query);
 				return value; 
 			}
+#else
+			inline void to( T& target) const
+			{ loadFromQuery( target, m_rs.m_query); }
+
+			T operator* () const
+			{
+				T value = ResultSetValueBuilder<T>::createInstance();
+				loadFromQuery( value, m_rs.m_query);
+				return value;
+			}
+#endif
 
 			private:
 				ResultSet<T>& m_rs;
 				int m_position;
 	};
+
+	template< class T>
+	const T& operator <<( T& target, const ResultSetIterator<T>& source)
+	{
+		source.load( target);
+		return  target;
+	}
 
 	/// @brief It is an helper class to iterate over database result sets.
 	template< class T>
