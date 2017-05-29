@@ -140,7 +140,7 @@ QString ANSIGenerator::updateStatement( const Model& model) const
 
 	// Compose statement.	
 	const QString stmt = 
-		QStringLiteral( "UPDATE '") % model.name() % QStringLiteral( "' SET ") 
+		QStringLiteral( "UPDATE `") % model.name() % QStringLiteral( "` SET ")
 		% setClausure.join( QStringLiteral(", "))
 		% QStringLiteral( " WHERE ") 
 		% primaryKeyWhereClausure( model);
@@ -165,8 +165,8 @@ QString ANSIGenerator::insertStatement( const Model& model) const
 	}
 	
 	const QString stmt = 
-		QStringLiteral( "INSERT INTO '") % model.name() 
-		% QStringLiteral("' (") % columnNames.join( QStringLiteral(", ")) 
+		QStringLiteral( "INSERT INTO `") % model.name()
+		% QStringLiteral("` (") % columnNames.join( QStringLiteral(", "))
 		% QStringLiteral(") VALUES (") % values.join( QStringLiteral(", ")) 
 		% QStringLiteral(")");
 
@@ -195,8 +195,8 @@ QString ANSIGenerator::createTableIfNotExistsStatement( const Model& model) cons
 
 	// Generate SQL.
 	const QString stmt = 
-		QStringLiteral( "CREATE TABLE IF NOT EXISTS '") 
-		% model.name() % QStringLiteral("' (") % sqlColumnDef.join( QStringLiteral(", "))
+		QStringLiteral( "CREATE TABLE IF NOT EXISTS `")
+		% model.name() % QStringLiteral("` (") % sqlColumnDef.join( QStringLiteral(", "))
 		% primaryKeyDef 
 		% foreignKeyDef 
 		% QStringLiteral( ")");
@@ -240,7 +240,7 @@ QString ANSIGenerator::projection( const Model &model) const
 	const QString stmt = 
 		QStringLiteral( "SELECT ") 
 	  	% columns.join( QStringLiteral(", "))
-		% QStringLiteral( " FROM '") % model.name() % QStringLiteral("' ");
+		% QStringLiteral( " FROM `") % model.name() % QStringLiteral("` ");
 
 	return stmt;
 }
@@ -261,7 +261,7 @@ QString ANSIGenerator::makeColumnDefinition( const Model& model,
 {
 	QString sqlColumnDef;
 	QTextStream os( &sqlColumnDef);
-	const QLatin1Char quotationMark ('\'');
+	const QLatin1Char quotationMark ('`');
 	const QLatin1Char space(' ');
 		
 	// Name
@@ -452,9 +452,9 @@ QString ANSIGenerator::foreignKeyWhereClausure( const RelationDef& fkDef) const
 QString ANSIGenerator::deleteStatement( const Model& model) const
 {
 	const QString stmt =
-		QStringLiteral( "DELETE FROM '") 
+		QStringLiteral( "DELETE FROM `")
 		% model.name() 
-		% QStringLiteral( "' WHERE ") 
+		% QStringLiteral( "` WHERE ")
 		% primaryKeyWhereClausure( model);
 
 	return stmt;

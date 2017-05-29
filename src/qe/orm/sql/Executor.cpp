@@ -77,7 +77,7 @@ Executor::Executor( const QString& connName)
 		m_connName = QLatin1Literal( QSqlDatabase::defaultConnection);
 		
 
-	QSqlDatabase db = QSqlDatabase::database( connName, false);
+	QSqlDatabase db = QSqlDatabase::database( m_connName, false);
 #if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
 	const QString driverName = db.driverName();
 	if( driverName == "QSQLITE")
