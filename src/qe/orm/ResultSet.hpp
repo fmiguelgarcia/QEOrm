@@ -56,7 +56,7 @@ namespace qe { namespace orm {
 		public:
 			inline static T createInstance( Args&&... args)
 			{
-				T value( std::forward<Args...>(args...));
+				T value( std::forward<Args>(args)...);
 				return value;
 			}
 	};
@@ -96,7 +96,7 @@ namespace qe { namespace orm {
 			T operator* () const
 			{
 				T value = ResultSetValueBuilder<T>::createInstance();
-				loadFromQuery( value, m_rs.m_query);
+				loadFromQuery( std::addressof(value), m_rs.m_query);
 				return value;
 			}
 
