@@ -68,8 +68,10 @@ namespace qe { namespace orm {
 	{
 		public:
 			explicit ResultSetIterator( ResultSet<T>& rs, int pos) noexcept
-				: m_rs(rs), m_position(pos)
-			{}
+				: m_rs(rs)
+			{
+				setPosition( pos);
+			}
 
 			ResultSetIterator( const ResultSetIterator& other) noexcept
 				: m_rs( other.m_rs), m_position( other.m_position)
@@ -78,7 +80,7 @@ namespace qe { namespace orm {
 			ResultSetIterator& operator ++()
 			{
 				m_rs.m_query.next();
-				m_position = m_rs.m_query.at();
+				setPosition( m_rs.m_query.at());
 				return *this;
 			}
 
@@ -88,20 +90,6 @@ namespace qe { namespace orm {
 			inline bool operator !=( const ResultSetIterator& other) const noexcept
 			{ return m_position != other.m_position;}
 
-#if 0
-			/// @brief It creates an object and loads it using the current
-			/// result set position.
-			T* operator *() const
-			{ 
-				T* value = reinterpret_cast<T*>( 
-					createInstance( 
-						std::addressof( T::staticMetaObject),
-						m_rs.m_parent)); 
-			
-				loadFromQuery( value, m_rs.m_query);
-				return value; 
-			}
-#else
 			inline void to( T& target) const
 			{ loadFromQuery( std::addressof(target), m_rs.m_query); }
 
@@ -111,11 +99,13 @@ namespace qe { namespace orm {
 				loadFromQuery( value, m_rs.m_query);
 				return value;
 			}
-#endif
 
-			private:
-				ResultSet<T>& m_rs;
-				int m_position;
+		private:
+			inline void setPosition( const int pos) noexcept
+			{ m_position = std::max( pos, -1); }
+
+			ResultSet<T>& m_rs;
+			int m_position;
 	};
 
 	template< class T>
