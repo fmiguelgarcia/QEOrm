@@ -28,6 +28,7 @@
 #include "LoadHelper.hpp"
 #include "DeleteHelper.hpp"
 #include "SerializedItem.hpp"
+#include <qe/orm/sql/Executor.hpp>
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>
@@ -222,4 +223,16 @@ void QEOrm::checkAndCreateModel( const ModelShd& model,
 	SaveHelper saver;
 	checkAndCreateDatabaseTables( saver, model, 
 		const_cast<SerializedItem*>(target), m_checkedTables, m_checkedTablesMtx);
+}
+
+
+QSqlQuery QEOrm::nativeQuery( const qe::orm::SerializedItem *const si, const QString& stmt ) const
+{
+	const QString errorMsg = QStringLiteral("QE Orm cannot execute query.");
+
+	/// @todo Replace property names by column names.
+	const sql::Executor& sqlExec = si->executor();
+	QSqlQuery ds = sqlExec.execute( stmt, QVariantList(), errorMsg);
+
+	return ds;
 }

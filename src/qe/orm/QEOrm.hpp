@@ -87,6 +87,20 @@ namespace qe { namespace orm {
 						parent);
 				}
 
+			template< class T>
+			ResultSet<T> select(
+				const SerializedItem* const source,
+				const QString& query,
+				QObject* parent = nullptr) const
+			{
+				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
+				checkAndCreateModel( model, source);
+
+				return ResultSet<T>(
+						nativeQuery( source, query),
+						parent);
+			}
+
 		protected:
 			void save( qe::entity::ObjectContext& context, 
 					const qe::entity::ModelShd& model, QObject *const source, 
@@ -110,6 +124,9 @@ namespace qe { namespace orm {
 
 			void checkAndCreateModel( const entity::ModelShd& model,
 				const SerializedItem* const target) const;
+
+
+			QSqlQuery nativeQuery( const SerializedItem* const source, const QString& query) const ;
 
 			mutable std::mutex m_checkedTablesMtx;
 			mutable std::set<QString> m_checkedTables;
