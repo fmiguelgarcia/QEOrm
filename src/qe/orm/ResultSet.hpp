@@ -103,7 +103,7 @@ namespace qe { namespace orm {
 			}
 #else
 			inline void to( T& target) const
-			{ loadFromQuery( target, m_rs.m_query); }
+			{ loadFromQuery( std::addressof(target), m_rs.m_query); }
 
 			T operator* () const
 			{
@@ -121,7 +121,7 @@ namespace qe { namespace orm {
 	template< class T>
 	const T& operator <<( T& target, const ResultSetIterator<T>& source)
 	{
-		source.load( target);
+		source.to( target);
 		return  target;
 	}
 
