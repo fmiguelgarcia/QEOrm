@@ -107,9 +107,9 @@ ANSIGenerator::~ANSIGenerator()
 QString ANSIGenerator::existsStatement( const Model& model) const
 {
 	const QString stmt = 
-		QStringLiteral( "SELECT * FROM '") 
+		QStringLiteral( "SELECT * FROM `")
 		% model.name()
-	  	% QStringLiteral("' WHERE ")
+	  	% QStringLiteral("` WHERE ")
 		% primaryKeyWhereClausure( model) 
 		% QStringLiteral( " LIMIT 1");
 	
