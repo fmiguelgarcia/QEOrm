@@ -90,13 +90,22 @@ namespace qe { namespace orm {
 			template< class T>
 			ResultSet<T> select(
 				const SerializedItem* const source,
-				const QString& query,
+				QSqlQuery& query,
 				QObject* parent = nullptr) const
 			{
 				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
 				checkAndCreateModel( model, source);
 
-				return ResultSet<T>(
+				return ResultSet<T>( query, parent);
+			}
+
+			template< class T>
+			ResultSet<T> select(
+				const SerializedItem* const source,
+				const QString& query,
+				QObject* parent = nullptr) const
+			{
+				return select<T>( source,
 						nativeQuery( source, query),
 						parent);
 			}
