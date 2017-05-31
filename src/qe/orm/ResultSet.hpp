@@ -126,7 +126,11 @@ namespace qe { namespace orm {
 			/// @brief Create an result set from a SQL query.
 			/// @param sql SQL query.
 			/// @param parent It will be used as a parent for each created object.
-			explicit ResultSet( QSqlQuery sql, QObject* parent = nullptr) 
+			explicit ResultSet( QSqlQuery&& sql, QObject* parent = nullptr)
+				: m_query( std::move(sql)), m_parent( parent)
+			{ m_query.next(); }
+
+			explicit ResultSet( const QSqlQuery& sql, QObject* parent = nullptr)
 				: m_query( sql), m_parent( parent)
 			{ m_query.next(); }
 

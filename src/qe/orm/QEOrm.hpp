@@ -90,7 +90,7 @@ namespace qe { namespace orm {
 			template< class T>
 			ResultSet<T> select(
 				const SerializedItem* const source,
-				QSqlQuery& query,
+				QSqlQuery&& query,
 				QObject* parent = nullptr) const
 			{
 				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
