@@ -123,7 +123,7 @@ QSqlQuery Executor::execute( const QString& stmt, const QVariantList& params,
 	const QString& errorMsg) const
 {
 	auto dbLockGuard = DBConnectionPool::instance().connection( m_connName);
-	QSqlQuery query( dbLockGuard->connection());
+	QSqlQuery query( dbLockGuard->database());
 	query.prepare( stmt);
 	for( int i = 0; i < params.size(); ++i)
 		query.bindValue( i, params[i]);
@@ -156,7 +156,7 @@ QSqlQuery Executor::execute( ObjectContext& context, const Model& model,
 {
 	// 1. Prepare statement.
 	auto dbLockGuard = DBConnectionPool::instance().connection( m_connName);
-	QSqlQuery query( dbLockGuard->connection());
+	QSqlQuery query( dbLockGuard->database());
 	query.prepare( stmt);
 
 	// 2. Bind values
