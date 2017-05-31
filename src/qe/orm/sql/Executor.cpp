@@ -32,12 +32,12 @@
 #include <qe/entity/EntityDef.hpp>
 #include <qe/entity/RelationDef.hpp>
 #include <qe/common/Exception.hpp>
+#include <qe/common/DBConnectionPool.hpp>
 
 #if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
 #	include <qe/orm/sql/GeneratorRepository.hpp>
 #endif
 
-#include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSqlDriver>
@@ -122,7 +122,8 @@ QSqlQuery Executor::loadUsingForeignKey( ObjectContext& context, const Model& mo
 QSqlQuery Executor::execute( const QString& stmt, const QVariantList& params,
 	const QString& errorMsg) const
 {
-	QSqlQuery query( QSqlDatabase::database( m_connName));
+	auto dbLockGuard = DBConnectionPool::instance().connection( m_connName);
+	QSqlQuery query( dbLockGuard->connection());
 	query.prepare( stmt);
 	for( int i = 0; i < params.size(); ++i)
 		query.bindValue( i, params[i]);
@@ -154,7 +155,8 @@ QSqlQuery Executor::execute( ObjectContext& context, const Model& model,
 		const QString& stmt, const QObject* source, const QString& errorMsg) const
 {
 	// 1. Prepare statement.
-	QSqlQuery query( QSqlDatabase::database( m_connName));
+	auto dbLockGuard = DBConnectionPool::instance().connection( m_connName);
+	QSqlQuery query( dbLockGuard->connection());
 	query.prepare( stmt);
 
 	// 2. Bind values
