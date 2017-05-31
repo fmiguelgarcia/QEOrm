@@ -117,7 +117,10 @@ namespace qe { namespace orm {
 				const QString& query,
 				QObject* parent = nullptr) const
 			{
-				return select<T>( source,
+				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
+				checkAndCreateModel( model, source);
+
+				return ResultSet<T>(
 						nativeQuery( source, query),
 						parent);
 			}
