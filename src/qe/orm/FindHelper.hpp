@@ -34,7 +34,7 @@ class QSqlQuery;
 namespace qe { namespace entity { class Model; }}
 namespace qe { namespace orm { 
 	class FindHelperPrivate;
-	class SerializedItem;
+	class S11nContext;
 
 	class QEORM_EXPORT FindHelper
 	{
@@ -43,7 +43,7 @@ namespace qe { namespace orm {
 
 			QSqlQuery findEqualProperty( 
 				const entity::Model& model,
-				const SerializedItem* const source,
+				const S11nContext* const source,
 				const std::map<QString, QVariant>& properties) const;
 
 		protected:

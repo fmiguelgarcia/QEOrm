@@ -28,24 +28,27 @@
 
 namespace qe { namespace orm { 
 	class SaveHelperPrivate;
-	class SerializedItem;
+	class S11nContext;
 
 	class SaveHelper
 	{
 		public:
 			virtual ~SaveHelper();
 
-			void save( entity::ObjectContext& context, 
-				const entity::ModelShd& model, QObject *const source, 
-				SerializedItem* const target) const;
+			void save( 
+				const entity::ModelShd& model, 
+				QObject *const source, 
+				S11nContext* const context) const;
 
-			QStringList createTables( const entity::ModelShd model, 
-				SerializedItem* const target) const; 
+			QStringList createTables( 
+				const entity::ModelShd model, 
+				S11nContext* const context) const; 
 
 		protected:
-			void saveOneToMany( entity::ObjectContext& context, 
-				const entity::Model &model, QObject *source, 
-				SerializedItem* const target) const;
+			void saveOneToMany( 
+				const entity::Model &model, 
+				QObject *source, 
+				S11nContext* const context) const;
 
 			SaveHelperPrivate *d_ptr;
 

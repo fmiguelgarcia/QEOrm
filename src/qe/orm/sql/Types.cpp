@@ -24,38 +24,34 @@
  *
  * $QE_END_LICENSE$
  */
-#pragma once
-#include <qe/orm/Global.hpp>
-#include <qe/orm/sql/Executor.hpp>
-#include <qe/entity/AbstractSerializedItem.hpp>
+#include "Types.hpp"
 
-namespace qe { namespace orm { 
-	class SerializedItemPrivate;
-		
-	class QEORM_EXPORT SerializedItem
-		: public qe::entity::AbstractSerializedItem
-	{
-		public:
-			explicit SerializedItem( 
-				const sql::Executor& helper = sql::Executor());
-			explicit SerializedItem(
-				const QString& databaseConn);
-	
-			SerializedItem(
-				QVariantList&& pkValues,
-				sql::Executor&& helper = sql::Executor());
-		
-			SerializedItem(
-				const QVariantList& pkValues,
-				const sql::Executor& helper = sql::Executor());
+#if QT_VERSION < QT_VERSION_CHECK(5,4,0)
+#include <iterator>
 
-			~SerializedItem();
+using namespace qe::orm::sql;
+using namespace std;
 
-			const sql::Executor& executor() const noexcept;
-
-		private:
-			sql::Executor m_helper;
-
-			Q_DECLARE_PRIVATE(SerializedItem);
+QSqlDriver qe::orm::sql::driverNameToType( const QString& name)
+{
+	static std::array< QString, 9> driverNames = {
+		QString(), 						// UnknownDbms = 0,
+		QStringLiteral("QODBC"), 	// MSSqlServer,
+		QStringLiteral("QMYSQL"), 	// MySqlServer,
+		QStringLiteral("QPSQL"), 	// PostgreSQL,
+		QStringLiteral("QOCI"), 	// Oracle,
+		QStringLiteral("QTDS"), 	// Sybase = 5,
+		QStringLiteral("QSQLITE"),	// SQLite,
+		QStringLiteral("QIBASE"),	// Interbase,
+		QStringLiteral("QDB2"),		//  DB2
 	};
-}}
+
+	auto itr = find( begin( driverNames), end( driverNames), name);
+	if( itr == end( driverNames))
+		itr = begin( driverNames);
+
+	return distance( begin( driverNames), itr);
+}
+
+#endif
+

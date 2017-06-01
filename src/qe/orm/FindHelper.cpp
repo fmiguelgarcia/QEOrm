@@ -28,7 +28,7 @@
 #include <qe/orm/sql/Executor.hpp>
 #include <qe/orm/sql/generator/AbstractGenerator.hpp>
 #include <qe/orm/sql/GeneratorRepository.hpp>
-#include <qe/orm/SerializedItem.hpp>
+#include <qe/orm/S11nContext.hpp>
 
 #include <qe/entity/Model.hpp>
 #include <QSqlQuery>
@@ -42,7 +42,7 @@ FindHelper::~FindHelper()
 
 QSqlQuery FindHelper::findEqualProperty(
 	const	Model& model,
-	const SerializedItem* const source,
+	const S11nContext* const context,
 	const map<QString, QVariant>& properties) const
 {
 	QSqlQuery ds;
@@ -61,13 +61,12 @@ QSqlQuery FindHelper::findEqualProperty(
 		}
 	}
 
-	const sql::Executor& sqlExec = source->executor();
-	sql::AbstractGenerator* stmtMaker = sql::GeneratorRepository::instance().generator( 
-		sqlExec.dbmsType());
-	const QString stmt = stmtMaker->selectionUsingProperties(
+	const QString stmt = context->statementMaker()->selectionUsingProperties(
 		model, entityList);
 
-	ds = sqlExec.execute( stmt, values,
+	ds = context->execute( 
+		stmt, 
+		values,
 		QStringLiteral("QE Orm Find Helper cannot execute query.")); 
 	
 	return ds;

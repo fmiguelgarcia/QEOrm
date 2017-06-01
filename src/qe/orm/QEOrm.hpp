@@ -36,6 +36,7 @@
 
 namespace qe { namespace orm {
 	class QEOrmPrivate;
+	class S11nContext;
 		
 	/// @todo Add support for QSqlQuery::isForwardOnly
 	/// @todo Check table version. 
@@ -44,29 +45,41 @@ namespace qe { namespace orm {
 	/// It uses the default database connection.
 	class QEORM_EXPORT QEOrm : public qe::entity::AbstractSerializer
 	{
+		private:
+			struct FindValidatedInputs 
+			{
+				FindValidatedInputs( 
+						const QMetaObject* mo, 
+						S11nContext* const ctx,
+						std::set<QString>& checkedTables,
+						std::mutex & checkedTablesMtx);
+				
+				entity::ModelShd model;
+				S11nContext* context;
+				std::unique_ptr<S11nContext> contextScopeGuard;
+			};
+
 		public:
 			/// @brief It returns the singleton instance.
 			static QEOrm& instance();
+			
+			inline void save( 
+				QObject* const source, 
+				qe::entity::AbstractS11nContext* const context = nullptr) const override
+			{ qe::entity::AbstractSerializer::save( source, context);}
 
-			void save( QObject* const source) const;
+			inline void load( 
+				QObject *const target,
+				const qe::entity::AbstractS11nContext* const context = nullptr) const override
+			{ qe::entity::AbstractSerializer::load( target, context);}
 
-			virtual void save( QObject* const source,
-				SerializedItem* const target) const;
-
-			void load( QVariantList&& primaryKey, 
-				QObject *const target) const;
-
-			void load( const SerializedItem* const si,
-				QVariantList&& primaryKey,
-				QObject* const target) const;
 
 			/// @brief It deletes @p source object from database specified 
 			///	in @p target.
-			void erase( QObject* const source,
-				SerializedItem* const target) const;
+			void erase( 
+				QObject* const source,
+				S11nContext* const context = nullptr) const;
 			
-			void erase( QObject* const source) const;
-
 			/// @brief It finds all database objects which properties are equal to
 			/// values specified on @p properties map.
 			/// @param properties Properties map.
@@ -74,87 +87,67 @@ namespace qe { namespace orm {
 			/// nullptr is used, you should be responsible to delete them.
 			template< class T>
 				ResultSet<T> findEqual(
-					const SerializedItem * const source,
 					const std::map<QString, QVariant>& properties,
+					const S11nContext* const context = nullptr,
 					QObject* parent = nullptr) const
 				{
-					entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
-					checkAndCreateModel( model, source);
-					
+					const FindValidatedInputs fvi( & T::staticMetaObject, context);
 					FindHelper findHelper;
+					
 					return ResultSet<T>( 
-						findHelper.findEqualProperty( *model, source, properties), 
+						findHelper.findEqualProperty( 
+							*fvi.model, 
+							fvi.context, 
+							properties), 
 						parent);
 				}
 
 			template< class T>
 			ResultSet<T> select(
-				const SerializedItem* const source,
-				QSqlQuery&& query,
-				QObject* parent = nullptr) const
-			{
-				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
-				checkAndCreateModel( model, source);
-
-				return ResultSet<T>( query, parent);
-			}
-
-			template< class T>
-			ResultSet<T> select(
-				const SerializedItem* const source,
 				const QSqlQuery& query,
+				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
-				checkAndCreateModel( model, source);
-
+				const FindValidatedInputs fvi( & T::staticMetaObject, context);
 				return ResultSet<T>( query, parent);
 			}
 
 			template< class T>
 			ResultSet<T> select(
-				const SerializedItem* const source,
 				const QString& query,
+				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				entity::ModelShd model = getModelOrThrow( & T::staticMetaObject);
-				checkAndCreateModel( model, source);
-
+				const FindValidatedInputs fvi( & T::staticMetaObject, context);
+				
 				return ResultSet<T>(
-						nativeQuery( source, query),
+						nativeQuery( fvi.context, query),
 						parent);
 			}
 
 		protected:
-			void save( qe::entity::ObjectContext& context, 
-					const qe::entity::ModelShd& model, QObject *const source, 
-					qe::entity::AbstractSerializedItem* const target) const override;
-			void save( qe::entity::ObjectContext& context, 
-					const qe::entity::ModelShd& model, QObject *const source, 
-					SerializedItem* const target) const;
+			void save(  
+				const qe::entity::ModelShd& model, 
+				QObject *const source, 
+				qe::entity::AbstractS11nContext* const target) const override;
 
-
-			void load( qe::entity::ObjectContext& context, 
-					const qe::entity::ModelShd& model, 
-					const qe::entity::AbstractSerializedItem *const source,
-					QObject *const target) const override;
+			void load( 
+				const qe::entity::ModelShd& model, 
+				QObject *const target,
+				const qe::entity::AbstractS11nContext* const source) const override;
 
 		private:
+
 			QEOrm();
 			QEOrm( const QEOrm& );
 			QEOrm& operator=( const QEOrm& );
+			QSqlQuery nativeQuery( 
+					const S11nContext* const context, 
+					const QString& query) const ;
 
-			entity::ModelShd getModelOrThrow( const QMetaObject* metaObject) const;
-
-			void checkAndCreateModel( const entity::ModelShd& model,
-				const SerializedItem* const target) const;
-
-
-			QSqlQuery nativeQuery( const SerializedItem* const source, const QString& query) const ;
 
 			mutable std::mutex m_checkedTablesMtx;
 			mutable std::set<QString> m_checkedTables;
-
 			Q_DECLARE_PRIVATE( QEOrm);
 	};
 }}

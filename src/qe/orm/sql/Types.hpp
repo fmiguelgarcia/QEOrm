@@ -31,8 +31,17 @@
 namespace qe { namespace orm { namespace sql {
 
 	enum QSqlDriver{
-		UnknownDbms,
-		SQLite
-	};	
+		UnknownDbms = 0,
+		MSSqlServer,
+		MySqlServer,
+		PostgreSQL,
+		Oracle,
+		Sybase = 5,
+		SQLite,
+		Interbase,
+		DB2
+	};
+
+	QSqlDriver driverNameToType( const QString& name);
 }}}
 #endif

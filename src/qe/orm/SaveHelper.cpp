@@ -24,7 +24,7 @@
  * $QE_END_LICENSE$
  */
 #include "SaveHelper.hpp"
-#include "SerializedItem.hpp"
+#include "S11nContext.hpp"
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
 #include <qe/common/Exception.hpp>
@@ -51,8 +51,11 @@ using TableStatementList = std::vector<TableStatement>;
 namespace {
 
 	/// @brief It checks if @p source exits into database.
-	bool exists(const Model &model, const QObject *source, 
-			SerializedItem* const target)
+	/// It uses the primary key from @p model.
+	bool exists(
+			const Model &model, 
+			const QObject *source, 
+			S11nContext* const context)
 	{
 		QVariantList pkValues;
 		for( const auto& colDef: model.primaryKeyDef())
@@ -65,37 +68,48 @@ namespace {
 		}
 
 		// Execute sql
-		const sql::Executor& sqlExec = target->executor();
-		const QString stmt = GeneratorRepository::instance()
-			.generator( sqlExec.dbmsType())->existsStatement( model);
+		const auto stmtMaker = context->statementMaker();
+		const QString stmt = stmtMaker->existsStatement( model);
 
-		QSqlQuery query = sqlExec.execute( stmt, pkValues, 
-			QStringLiteral( "QE Orm cannot check existence of object in database."));
+		QSqlQuery query = context->execute( 
+				stmt, 
+				pkValues, 
+				QStringLiteral( "QE Orm cannot check existence of object in database."));
 
 		return query.next();
 	}
 
-	void update( ObjectContext& context, const Model &model, 
-			const QObject *source, SerializedItem* const target)
+	/// @brief It updates the database record using data from @p source.
+	void update( 
+			const Model &model, 
+			const QObject *source, 
+			S11nContext* const context)
 	{
-		const sql::Executor& sqlExec = target->executor();
-		const QString stmt = GeneratorRepository::instance()
-			.generator( sqlExec.dbmsType())->updateStatement( model);
+		const QString stmt = context->statementMaker()
+			->updateStatement( model);
 
-		sqlExec.execute( context, model, stmt, source, 
+		context->execute( 
+			model, 
+			stmt, 
+			source, 
 			QStringLiteral( "QE Orm cannot update an object"));
 	}
 
-	void insert( ObjectContext& context, const Model &model, QObject *source, 
-			qe::orm::SerializedItem* const target)
+	/// @brief It inserts into database from @p source.
+	void insert( 
+			const Model &model, 
+			QObject *source, 
+			S11nContext* const context)
 	{
 		// 1. Insert
-		const sql::Executor& sqlExec = target->executor();
-		const QString stmt = GeneratorRepository::instance()
-			.generator( sqlExec.dbmsType())->insertStatement( model);
+		const QString stmt = context->statementMaker()
+			->insertStatement( model);
 
-		QSqlQuery ds = sqlExec.execute( context, model, stmt, source, 
-			QStringLiteral( "QE Orm cannot insert an object"));
+		QSqlQuery ds = context->execute( 
+				model, 
+				stmt, 
+				source, 
+				QStringLiteral( "QE Orm cannot insert an object"));
 
 		// 2. Get autoincrement value if it exists.
 		const QVariant insertId = ds.lastInsertId();
@@ -114,26 +128,30 @@ namespace {
 SaveHelper::~SaveHelper()
 {}
 
-void SaveHelper::save( ObjectContext& context, const ModelShd& model, 
-	QObject *const source, SerializedItem* const target) const
+void SaveHelper::save( 
+		const ModelShd& model, 
+		QObject *const source, 
+		S11nContext* const context) const
 {
 	// Check recursive relations
-	if( find( begin(context), end(context), source) != end(context))
+	if( context->isObjectInContext( source))
 		Exception::makeAndThrow(
 			QStringLiteral( "SQL Save helper does NOT support recursive relations"));	
 
-	if( exists( *model, source, target))
-		update( context, *model, source, target);
+	if( exists( *model, source, context))
+		update( *model, source, context);
 	else
-		insert( context, *model, source, target);
+		insert( *model, source, context);
 
-	saveOneToMany(context, *model, source, target);
+	saveOneToMany( *model, source, context);
 }
 
-void SaveHelper::saveOneToMany( ObjectContext& context, const Model &model, 
-		QObject *source, SerializedItem* const target) const
+void SaveHelper::saveOneToMany( 
+		const Model &model, 
+		QObject *source, 
+		S11nContext* const context) const
 {
-	ScopedStackedObjectContext _( source, context);
+	ScopedS11Context _( source, context);
 	
 	for( const auto& colDef : model.entityDefs())
 	{
@@ -153,28 +171,29 @@ void SaveHelper::saveOneToMany( ObjectContext& context, const Model &model,
 				if( refItem )
 				{
 					ModelShd refModel = ModelRepository::instance().model( refItem->metaObject());
-					save( context, refModel, refItem, target);
+					save( refModel, refItem, context);
 				}
 			}
 		}
 	}
 }
 
-
-QStringList SaveHelper::createTables( const ModelShd model, 
-	SerializedItem* const target) const
+QStringList SaveHelper::createTables( 
+	const ModelShd model, 
+	S11nContext* const context) const
 {
 	QStringList tables;
 	tables << model->name();
 
 	// Create table
-	const sql::Executor& sqlExec = target->executor();
-	const QString stmt = GeneratorRepository::instance()
-			.generator( sqlExec.dbmsType())->createTableIfNotExistsStatement( *model);
+	const QString stmt = context->statementMaker()
+		->createTableIfNotExistsStatement( *model);
 
-	sqlExec.execute( stmt, QVariantList{}, 
+	context->execute( 
+			stmt, 
+			QVariantList{}, 
 			QStringLiteral("QE Orm cannot create the table ")
-			% model->name());
+				% model->name());
 
 	// Find relations.
 	for( const auto& colDef: model->entityDefs())
@@ -182,7 +201,7 @@ QStringList SaveHelper::createTables( const ModelShd model,
 		if( colDef->mappingType() == EntityDef::MappingType::OneToMany)
 		{
 			auto mapModel = ModelRepository::instance().model( colDef->mappingEntity());
-			const auto refTables = createTables( mapModel, target);
+			const auto refTables = createTables( mapModel, context);
 			copy( begin(refTables), end(refTables), back_inserter(tables));
 		}
 	}

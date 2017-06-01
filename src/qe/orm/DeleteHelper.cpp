@@ -24,7 +24,7 @@
  * $QE_END_LICENSE$
  */
 #include "DeleteHelper.hpp"
-#include "SerializedItem.hpp"
+#include "S11nContext.hpp"
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
 
@@ -35,14 +35,17 @@ using namespace qe::entity;
 DeleteHelper::~DeleteHelper()
 {}
 
-void DeleteHelper::erase( ObjectContext& context, const ModelShd& model, 
-	QObject *const source, SerializedItem* const target) const
+void DeleteHelper::erase( 
+	const ModelShd& model, 
+	QObject *const source, 
+	S11nContext* const context) const
 {
-	const sql::Executor & sqlExec = target->executor();
-	const QString stmt = GeneratorRepository::instance()
-		.generator( sqlExec.dbmsType())->deleteStatement( *model);
+	const QString stmt = context->statementMaker()->deleteStatement( *model);
 
-	sqlExec.execute( context, *model, stmt, source,
+	context->execute( 
+		*model, 
+		stmt, 
+		source,
 		QStringLiteral( "QE Orm cannot delete an object."));	
 }
 	

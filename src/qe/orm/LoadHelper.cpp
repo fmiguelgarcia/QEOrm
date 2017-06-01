@@ -27,7 +27,7 @@
 #include "LoadHelper.hpp"
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
-#include "SerializedItem.hpp"
+#include "S11nContext.hpp"
 
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>
@@ -48,24 +48,25 @@ using namespace std;
 LoadHelper::~LoadHelper()
 {}
 
-void LoadHelper::load( ObjectContext& context, const ModelShd& model, 
-	const SerializedItem *const source, QObject *const target) const
+void LoadHelper::load( 
+	const ModelShd& model, 
+	const S11nContext *const context, 
+	QObject *const target) const
 {
-	const QVariantList & pk = source->primaryKey();
-
-	const sql::Executor& sqlExec = source->executor();
-	sql::AbstractGenerator* stmtMaker = sql::GeneratorRepository::instance().generator( 
-		sqlExec.dbmsType());
+	const QVariantList & pk = context->primaryKey();
+	const auto stmtMaker = context->statementMaker(); 
 	const QString stmt = stmtMaker->selectionUsingPrimaryKey( *model);
 
-	QSqlQuery ds = sqlExec.execute( stmt, pk,  
+	QSqlQuery ds = context->execute( 
+			stmt, 
+			pk,  
 			QStringLiteral( "QE Orm cannot fetch an object."));
+
 	const bool resultAvailable = ds.next();
-	
 	if( resultAvailable)
 	{
 		loadObjectFromRecord( *model, ds.record(), target);
-		loadOneToMany( context, model, source, target);
+		loadOneToMany( model, context, target);
 	}
 	else if( ds.lastError().type() != QSqlError::NoError)
 	{
@@ -97,10 +98,12 @@ void LoadHelper::loadObjectFromRecord( const Model& model,
 	}
 }
 
-void LoadHelper::loadOneToMany( ObjectContext& context, const ModelShd& model,
-	const SerializedItem *const source, QObject* const target) const
+void LoadHelper::loadOneToMany( 
+	const ModelShd& model,
+	const S11nContext *const context, 
+	QObject* const target) const
 {
-	ScopedStackedObjectContext _( target, context);
+	ScopedS11Context _( target, context);
 	
 	for( const auto& colDef : model->entityDefs())
 	{
@@ -111,9 +114,11 @@ void LoadHelper::loadOneToMany( ObjectContext& context, const ModelShd& model,
 			if( fkDef )
 			{
 				QVariantList wrapperList = loadObjectsUsingForeignKey(
-					context, *manyModel, 
-					*fkDef, source, 
-					colDef->mappingEntity(), target);
+					*manyModel, 
+					*fkDef, 
+					context, 
+					colDef->mappingEntity(), 
+					target);
 
 				const QByteArray& propertyName = colDef->propertyName();
 				target->setProperty( propertyName, wrapperList);
@@ -123,20 +128,23 @@ void LoadHelper::loadOneToMany( ObjectContext& context, const ModelShd& model,
 }
 			
 QVariantList LoadHelper::loadObjectsUsingForeignKey( 
-	ObjectContext& context, const Model& refModel,
-	const RelationDef& fkDef, const SerializedItem* const source,
-	const QMetaObject* refMetaObjectEntity, QObject *const target) const
+	const Model& refModel,
+	const RelationDef& fkDef, 
+	const S11nContext* const context,
+	const QMetaObject* refMetaObjectEntity, 
+	QObject *const target) const
 {
 	QVariantList list;
 	ModelShd model = ModelRepository::instance().model( refMetaObjectEntity);
 
 	// Cursor over many objects
-	const sql::Executor& sqlExec = source->executor();
-	sql::AbstractGenerator* stmtMaker = sql::GeneratorRepository::instance().generator( 
-		sqlExec.dbmsType());
+	const auto stmtMaker = context->statementMaker(); 
 	const QString stmt = stmtMaker->selectionUsingForeignKey( refModel, fkDef);
 
-	QSqlQuery ds = sqlExec.execute( context, refModel, stmt, target,  
+	QSqlQuery ds = context->execute( 
+			refModel, 
+			stmt, 
+			target,  
 			QStringLiteral( "QE Orm cannot fetch object from a relation."));
 
 	while( ds.next())

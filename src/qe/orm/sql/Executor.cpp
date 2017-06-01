@@ -63,7 +63,6 @@ void bindNoMappingColumns( const Model& model, QSqlQuery& query,
 void bindMappingOneToMany( const Model& model, QSqlQuery& query,  
 	const ObjectContext& context);
 
-
 Q_LOGGING_CATEGORY( qe::orm::sql::lcExecutor, "com.dmious.qe.orm.sqlHelper");
 
 // Class Generator
@@ -75,15 +74,10 @@ Executor::Executor( const QString& connName)
 	// If connection name is empty, it will use the default connection.
 	if( m_connName.isEmpty())
 		m_connName = QLatin1Literal( QSqlDatabase::defaultConnection);
-		
 
 	QSqlDatabase db = QSqlDatabase::database( m_connName, false);
 #if QT_VERSION < QT_VERSION_CHECK( 5, 4, 0)
-	const QString driverName = db.driverName();
-	if( driverName == "QSQLITE")
-		m_dbmsType = QSqlDriver::SQLite;
-	else
-		m_dbmsType = QSqlDriver::UnknownDbms;
+	m_dbmsType = qe::orm::sql::driverNameToType( db.driverName());
 #else
 	QSqlDriver* driver = db.driver();
 	if( driver)
@@ -93,12 +87,10 @@ Executor::Executor( const QString& connName)
 #endif
 }
 
-Executor::Executor( const Executor& other) = default;
-
 Executor::~Executor()
 {}
 
-int Executor::dbmsType() const
+int Executor::dbmsType() const noexcept
 { return m_dbmsType;}
 
 #if 0

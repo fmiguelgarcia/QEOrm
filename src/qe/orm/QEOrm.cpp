@@ -27,7 +27,7 @@
 #include "SaveHelper.hpp"
 #include "LoadHelper.hpp"
 #include "DeleteHelper.hpp"
-#include "SerializedItem.hpp"
+#include "S11nContext.hpp"
 #include <qe/orm/sql/Executor.hpp>
 #include <qe/common/Exception.hpp>
 #include <qe/entity/Model.hpp>
@@ -41,11 +41,6 @@ using namespace qe::common;
 using namespace std;
 
 namespace {
-	QString defaultConnectionName()
-	{
-		return QLatin1String( QSqlDatabase::defaultConnection);
-	}
-
 	/// @brief Utility to use double check locking and create/insert objects
 	/// into a container.
 	template< typename C, typename K, typename M>
@@ -69,7 +64,7 @@ namespace {
 	void checkAndCreateDatabaseTables(
 			const qe::orm::SaveHelper& saveHelper,
 			const ModelShd& model,
-			qe::orm::SerializedItem* const target,
+			S11nContext* const context,
 			T& checkedTables,
 			M& checkedTablesMtx) 
 	{
@@ -77,28 +72,89 @@ namespace {
 				checkedTables, model->name(), checkedTablesMtx);
 		if( !isAlreadyChecked)
 		{
-			const QStringList tables = saveHelper.createTables( model, target);
+			const QStringList tables = saveHelper.createTables( model, context);
 			for( const QString& table: tables)
 				existsOrCreateUsingDoubleCheckeLocking(
 					  	checkedTables, table, checkedTablesMtx);
 		}
 	}
 
-	qe::orm::SerializedItem* checkedCast( 
-			AbstractSerializedItem* const item)
+	ModelShd getModelOrThrow( const QMetaObject* metaObject)
 	{
-		using namespace qe::orm::sql;
-		SerializedItem* const ormItem = dynamic_cast<SerializedItem*>( item);
+		ModelShd model = ModelRepository::instance().model( metaObject);
+		if( !model)
+			Exception::makeAndThrow(
+					QStringLiteral( "QE Orm cannot find model for class ")
+					% metaObject->className());
 
-		if( !ormItem)
-			Exception::makeAndThrow( 
-				QStringLiteral( "Orm serializer only supports %1 as serialized item")
-					.arg( typeid( SerializedItem).name()));
+		return model;
+	}
+	
+	void checkAndCreateModel( 
+		const ModelShd& model, 
+		const S11nContext* const context,
+		std::set<QString>& checkedTables,
+		std::mutex & checkedTablesMtx)
+	{
+		SaveHelper saver;
+		checkAndCreateDatabaseTables( 
+				saver, 
+				model, 
+				const_cast<S11nContext*>(context), 
+				checkedTables, 
+				checkedTablesMtx);
+	}
+
+	class SecuredS11Context
+	{
+		public:
+			explicit SecuredS11Context( const AbstractS11nContext* context)
+				: m_context( dynamic_cast<const S11nContext*>( context))
+			{
+				if( !m_context)
+				{
+					m_contextScopeGuard.reset( new S11nContext);
+					m_context = m_contextScopeGuard.get();
+				}
+			}
+
+			inline S11nContext* get() noexcept
+			{ return const_cast<S11nContext*>( m_context); }
 			
-		return ormItem;
-	}	
+			inline const S11nContext* get() const noexcept
+			{ return m_context; }
+
+		private:
+			const S11nContext * m_context;
+			unique_ptr<const S11nContext> m_contextScopeGuard;
+	};
 }
 
+/** @class QEOrm::FindValidatedInputs
+ *
+ */
+
+QEOrm::FindValidatedInputs::FindValidatedInputs( 
+	const QMetaObject* mo, 
+	S11nContext* const ctx,
+	std::set<QString>& checkedTables,
+	std::mutex & checkedTablesMtx)
+		: model( getModelOrThrow( mo)), 
+		context( ctx)
+{
+	if( !context)
+	{
+		contextScopeGuard.reset( new S11nContext);
+		context = contextScopeGuard.get();
+	}
+
+	checkAndCreateModel( model, context, checkedTables, checkedTablesMtx);
+}
+
+
+/** \class QEOrm 
+ *
+ */
 QEOrm &QEOrm::instance()
 {
 	static unique_ptr<QEOrm> instance;
@@ -115,124 +171,57 @@ QEOrm::QEOrm()
 // Save operations
 // =================================================================
 
-void QEOrm::save( QObject* const source) const
+void QEOrm::save( 
+	const ModelShd& model, 
+	QObject *const source, 
+	AbstractS11nContext* const context) const
 {
-	sql::Executor helper( defaultConnectionName());
-	SerializedItem si( helper);
-
-	save( source, &si); 
-}
-
-void QEOrm::save( QObject* const source,
-	SerializedItem* const target) const
-{
-	ObjectContext context;
-	ModelShd model = ModelRepository::instance().model( source->metaObject());
-
-	save( context, model, source, target);
-}
-
-void QEOrm::save( ObjectContext& context, const ModelShd& model, 
-		QObject *const source, AbstractSerializedItem* const target) const
-{
-	SerializedItem* const ormTarget = checkedCast( target);
-	save( context, model, source, ormTarget);
-}
-	
-void QEOrm::save( ObjectContext& context, const ModelShd& model, 
-		QObject *const source, SerializedItem* const target) const
-{
+	SecuredS11Context sc( context);
 	SaveHelper saver;
-	checkAndCreateDatabaseTables( saver, model, target, m_checkedTables, 
-			m_checkedTablesMtx);
-	saver.save( context, model, source, target);
+
+	checkAndCreateDatabaseTables( 
+		saver, model, sc.get(), m_checkedTables, m_checkedTablesMtx);
+	saver.save( model, source, sc.get());
 }
 
 // Load operations
 // =================================================================
 
-void QEOrm::load( ObjectContext& context, const ModelShd& model, 
-	const AbstractSerializedItem *const source, QObject *const target) const
+void QEOrm::load( 
+	const ModelShd& model, 
+	QObject *const target,
+	const AbstractS11nContext*const context) const
 {
-	using namespace qe::orm::sql;
-	
-	if( !source)
-		Exception::makeAndThrow(
-			QStringLiteral("QE Orm does not support null source in loads"));
-	
-	std::unique_ptr<SerializedItem> ormSourceAutoGenerated;
-	const SerializedItem* ormSource = dynamic_cast<const SerializedItem*> ( source);
-
-	// Transform to SerializedItem using default connection.
-	if( !ormSource)
-	{
-		ormSourceAutoGenerated.reset( new SerializedItem( source->primaryKey())); 
-		ormSource = ormSourceAutoGenerated.get();
-	}
-
+	const SecuredS11Context sc( context);
 	LoadHelper loader;
-	loader.load( context, model, ormSource, target);
-}
-
-void QEOrm::load(QVariantList&& primaryKey, QObject*const target) const
-{
-	std::unique_ptr<const AbstractSerializedItem> ormSource( 
-		new SerializedItem( std::move(primaryKey)));
-	
-	AbstractSerializer::load( ormSource.get(), target);
+	loader.load( model, sc.get(), target);
 }
 
 // Delete operations
 // =================================================================
 
-void QEOrm::erase( QObject* const source, 
-	SerializedItem* const target) const 
+void QEOrm::erase( 
+	QObject* const source, 
+	S11nContext* const context) const 
 {
-	ObjectContext context;
+	SecuredS11Context sc( context);
 	DeleteHelper dh;
 	ModelShd model = ModelRepository::instance().model( source->metaObject());
 	
-	dh.erase( context, model, source, target);
-}
-
-void QEOrm::erase( QObject* const source) const
-{
-	sql::Executor helper( defaultConnectionName());
-	SerializedItem si( helper);
-
-	erase( source, &si); 
+	dh.erase( model, source, sc.get());
 }
 
 // Other stuff
 // ==================================================================
 
-ModelShd QEOrm::getModelOrThrow( const QMetaObject* metaObject) const
-{
-	ModelShd model = ModelRepository::instance().model( metaObject);
-	if( !model)
-		Exception::makeAndThrow(
-				QStringLiteral( "QE Orm cannot find model for class ")
-				% metaObject->className());
-
-	return model;
-}
-
-void QEOrm::checkAndCreateModel( const ModelShd& model, 
-	const SerializedItem* const target) const
-{
-	SaveHelper saver;
-	checkAndCreateDatabaseTables( saver, model, 
-		const_cast<SerializedItem*>(target), m_checkedTables, m_checkedTablesMtx);
-}
-
-
-QSqlQuery QEOrm::nativeQuery( const qe::orm::SerializedItem *const si, const QString& stmt ) const
+QSqlQuery QEOrm::nativeQuery( 
+	const S11nContext *const context, 
+	const QString& stmt ) const
 {
 	const QString errorMsg = QStringLiteral("QE Orm cannot execute query.");
 
 	/// @todo Replace property names by column names.
-	const sql::Executor& sqlExec = si->executor();
-	QSqlQuery ds = sqlExec.execute( stmt, QVariantList(), errorMsg);
+	QSqlQuery ds = context->execute( stmt, QVariantList(), errorMsg);
 
 	return ds;
 }

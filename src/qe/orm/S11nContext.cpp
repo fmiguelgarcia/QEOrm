@@ -24,32 +24,45 @@
  *
  * $QE_END_LICENSE$
  */
-#include "SerializedItem.hpp"
+#include "S11nContext.hpp"
+#include <qe/orm/sql/GeneratorRepository.hpp>
+
 using namespace qe::orm;
 using namespace qe::orm::sql;
 
-SerializedItem::SerializedItem( const Executor& helper)
-	: SerializedItem( QVariantList{}, helper)
+S11nContext::S11nContext(
+	const QVariantList& pkValues, 
+	const QString& connName)
+		: AbstractS11nContext( pkValues),
+		m_helper( connName)
 {}
 
-SerializedItem::SerializedItem( const QString& databaseConn)
-	: SerializedItem( QVariantList{}, sql::Executor( databaseConn))
+S11nContext::~S11nContext()
 {}
 
-SerializedItem::SerializedItem(
-	QVariantList&& pkValues, sql::Executor&& helper)
-		: AbstractSerializedItem( std::move(pkValues)),
-		m_helper( std::move(helper))
-{}
+int S11nContext::dbmsType() const noexcept
+{ return m_helper.dbmsType();}
 
-SerializedItem::~SerializedItem()
-{}
+QSqlQuery S11nContext::execute( 
+		const QString& stmt, 
+		const QVariantList& params,
+		const QString& errorMsg) const
+{
+	return m_helper.execute( stmt, params, errorMsg);
+}
 
-SerializedItem::SerializedItem( const QVariantList& pkValues,
-	const Executor& helper)
-	: AbstractSerializedItem( pkValues), m_helper( helper)
-{}
+QSqlQuery S11nContext::execute(
+	const qe::entity::Model& model,
+	const QString& stmt, 
+	const QObject* source, 
+	const QString& errorMsg) const
+{
+	return m_helper.execute( m_context, model, stmt, source, errorMsg);
+}
 
-const Executor& SerializedItem::executor() const noexcept
-{ return m_helper;} 
+AbstractGenerator* S11nContext::statementMaker() const
+{
+	return GeneratorRepository::instance()
+		.generator( m_helper.dbmsType()); 
+}
 

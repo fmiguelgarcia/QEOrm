@@ -26,6 +26,7 @@
 #include "QEOrmTest.hpp"
 #include "entity/book.hpp"
 #include <qe/orm/QEOrm.hpp>
+#include <qe/orm/S11nContext.hpp>
 #include <qe/common/Exception.hpp>
 
 #include <QSqlDatabase>
@@ -33,6 +34,7 @@
 #include <QtTest>
 
 using namespace qe::orm;
+using namespace qe::entity;
 using namespace qe::common;
 using namespace std;
 
@@ -81,11 +83,12 @@ QEOrmTest::QEOrmTest( QObject* parent)
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 
-#ifdef Q_OS_LINUX
+#if 0
 	db.setDatabaseName("/tmp/QEOrmTest.db");
 #else
 	db.setDatabaseName(":memory:");
 #endif
+
 	QVERIFY( db.open() );
 }
 
@@ -118,7 +121,8 @@ void QEOrmTest::checkSaveReferences()
 	QEOrm::instance().save( book.get());
 	
 	Book loadedBook;
-	QEOrm::instance().load( QVariantList{ book->id }, &loadedBook);
+	S11nContext ctxt( QVariantList{ book->id });
+	QEOrm::instance().load( &loadedBook, &ctxt);
 	
 	QVERIFY( *book == loadedBook);
 }
@@ -133,7 +137,8 @@ void QEOrmTest::checkDelete()
 	QEOrm::instance().erase( book.get());
 
 	Book loadedBook;
-	QEOrm::instance().load( QVariantList{ book->id }, &loadedBook);
+	S11nContext ctxt( QVariantList{ book->id });
+	QEOrm::instance().load( &loadedBook, &ctxt);
 	QVERIFY( loadedBook.id == 0);
 }
 

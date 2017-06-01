@@ -64,4 +64,6 @@ void ResultSetIteratorBase::loadFromQuery( QObject *o, QSqlQuery& query) const
 
 	LoadHelper loader;
 	loader.loadObjectFromRecord( *model, query.record(), o);
+
+	/// @todo loadManyToOne relation.
 }

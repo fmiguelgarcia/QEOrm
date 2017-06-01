@@ -25,45 +25,44 @@
  * $QE_END_LICENSE$
  */
 #pragma once
-#include <qe/entity/Types.hpp>
-#include <QVariantList>
+#include <qe/orm/Global.hpp>
+#include <qe/orm/sql/Executor.hpp>
+#include <qe/entity/AbstractS11nContext.hpp>
 
-class QSqlRecord;
 namespace qe { namespace orm { 
-	class LoadHelperPrivate;	
-	class S11nContext;
-
-	class LoadHelper 
+	namespace sql { class AbstractGenerator; }
+	class S11nContextPrivate;
+		
+	class QEORM_EXPORT S11nContext
+		: public qe::entity::AbstractS11nContext
 	{
 		public:
-			virtual ~LoadHelper();
+			explicit S11nContext(
+				const QVariantList& pkValues = QVariantList(),
+				const QString& databaseConn = QString());
+	
+			virtual ~S11nContext();
 
-			void load( 
-				const entity::ModelShd& model, 
-				const S11nContext* const context, 
-				QObject *const target) const;
+			int dbmsType() const noexcept;
+			QSqlQuery execute( 
+				const QString& stmt, 
+				const QVariantList& params,
+				const QString& errorMsg) const;
 
-			void loadObjectFromRecord( 
-				const entity::Model& model, 
-				const QSqlRecord& record, 
-				QObject *const target) const;
+			QSqlQuery execute(
+				const qe::entity::Model& model,
+				const QString& stmt, 
+				const QObject* source, 
+				const QString& errorMsg) const;
 
-		protected:
-			LoadHelperPrivate * d_ptr;
+			sql::AbstractGenerator* 
+			statementMaker() const;
 
 		private:
-			void loadOneToMany( 
-				const entity::ModelShd& model, 
-				const S11nContext *const source,
-				QObject* const target) const;
+			sql::Executor m_helper;
 
-			QVariantList loadObjectsUsingForeignKey( 
-				const entity::Model& refModel,
-				const entity::RelationDef& fkDef, 
-				const S11nContext* const source,
-				const QMetaObject* refMetaObjEntity, 
-				QObject* const target) const;
-
-			Q_DECLARE_PRIVATE( LoadHelper);
+			Q_DECLARE_PRIVATE(S11nContext);
 	};
+
+	
 }}

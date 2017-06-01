@@ -44,40 +44,23 @@ namespace qe { namespace orm { namespace sql
 			/// @param connName SQL database connection name. If it is empty, 
 			/// the default connection will be used.
 			explicit Executor( const QString& connName = QString());
-			Executor( const Executor& helper);
 			virtual ~Executor();
 
-			int dbmsType() const;
+			int dbmsType() const noexcept;
 
-			QSqlQuery execute( const QString& stmt, const QVariantList& params,
+			QSqlQuery execute( 
+					const QString& stmt, 
+					const QVariantList& params,
 					const QString& errorMsg) const;
-			QSqlQuery execute( QSqlQuery& query, const QString& errorMsg) const;
-			QSqlQuery execute( qe::entity::ObjectContext& context, 
+			QSqlQuery execute( 
+					QSqlQuery& query, 
+					const QString& errorMsg) const;
+			QSqlQuery execute( 
+					qe::entity::ObjectContext& context, 
 					const qe::entity::Model& model,
-					const QString& stmt, const QObject* source, 
+					const QString& stmt, 
+					const QObject* source, 
 					const QString& errorMsg) const;
-
-#if 0
-			
-			bool exitsObject( const qe::entity::Model& model, 
-					const QVariantList& pkValues) const;
-
-			void update( qe::entity::ObjectContext& context, 
-					const qe::entity::Model& model, const QObject* source) const;
-
-			void insert( qe::entity::ObjectContext& context, 
-					const qe::entity::Model& model, QObject* source) const;
-
-			void createTableIfNotExist( const qe::entity::Model & model) const;
-
-			QSqlQuery loadUsingPrimaryKey( const qe::entity::Model & model,
-					const QVariantList& primaryKey) const; 
-
-			QSqlQuery loadUsingForeignKey(
-				qe::entity::ObjectContext& context,
-				const qe::entity::Model& model, 
-				const qe::entity::RelationDef& fkDef, const QObject* source) const;
-#endif
 
 		protected:
 			void logQuery( QSqlQuery& query) const;
