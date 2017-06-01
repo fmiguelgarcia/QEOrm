@@ -52,7 +52,10 @@ QObject* ResultSetIteratorBase::createInstance( const QMetaObject* mo,
 	return o;
 }
 			
-void ResultSetIteratorBase::loadFromQuery( QObject *o, QSqlQuery& query) const
+void ResultSetIteratorBase::loadFromQuery(
+	QObject *o,
+	QSqlQuery& query,
+	const S11nContext* const context) const
 {
 	ModelShd model = ModelRepository::instance().model( o->metaObject());
 	if( !model)
@@ -64,6 +67,5 @@ void ResultSetIteratorBase::loadFromQuery( QObject *o, QSqlQuery& query) const
 
 	LoadHelper loader;
 	loader.loadObjectFromRecord( *model, query.record(), o);
-
-	/// @todo loadManyToOne relation.
+	loader.loadOneToMany( model, context, o);
 }

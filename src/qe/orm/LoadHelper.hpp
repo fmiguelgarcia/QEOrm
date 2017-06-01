@@ -48,15 +48,15 @@ namespace qe { namespace orm {
 				const QSqlRecord& record, 
 				QObject *const target) const;
 
+			void loadOneToMany(
+				const entity::ModelShd& model,
+				const S11nContext *const source,
+				QObject* const target) const;
+
 		protected:
 			LoadHelperPrivate * d_ptr;
 
 		private:
-			void loadOneToMany( 
-				const entity::ModelShd& model, 
-				const S11nContext *const source,
-				QObject* const target) const;
-
 			QVariantList loadObjectsUsingForeignKey( 
 				const entity::Model& refModel,
 				const entity::RelationDef& fkDef, 

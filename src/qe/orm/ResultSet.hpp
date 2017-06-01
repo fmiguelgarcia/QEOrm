@@ -25,6 +25,7 @@
  */
 #pragma once
 #include <qe/orm/Global.hpp>
+#include <qe/orm/S11nContext.hpp>
 #include <QObject>
 #include <QMetaObject>
 #include <QSqlQuery>
@@ -42,8 +43,14 @@ namespace qe { namespace orm {
 			virtual ~ResultSetIteratorBase();
 
 		protected:
-			QObject* createInstance( const QMetaObject* mo, QObject* parent) const;
-			void loadFromQuery( QObject *o, QSqlQuery& query) const;
+			QObject* createInstance(
+				const QMetaObject* mo,
+				QObject* parent) const;
+
+			void loadFromQuery(
+				QObject *o,
+				QSqlQuery& query,
+				const S11nContext* const context) const;
 
 			ResultSetIteratorBasePrivate *d_ptr;
 
@@ -91,12 +98,12 @@ namespace qe { namespace orm {
 			{ return m_position != other.m_position;}
 
 			inline void to( T& target) const
-			{ loadFromQuery( std::addressof(target), m_rs.m_query); }
+			{ loadFromQuery( std::addressof(target), m_rs.m_query, m_rs.context()); }
 
 			T operator* () const
 			{
 				T value = ResultSetValueBuilder<T>::createInstance();
-				loadFromQuery( std::addressof(value), m_rs.m_query);
+				loadFromQuery( std::addressof(value), m_rs.m_query, m_rs.context());
 				return value;
 			}
 
@@ -126,23 +133,36 @@ namespace qe { namespace orm {
 			/// @brief Create an result set from a SQL query.
 			/// @param sql SQL query.
 			/// @param parent It will be used as a parent for each created object.
-			explicit ResultSet( QSqlQuery&& sql, QObject* parent = nullptr)
-				: m_query( std::move(sql)), m_parent( parent)
+			explicit ResultSet(
+				QSqlQuery&& sql,
+				const S11nContext& context,
+				QObject* parent = nullptr)
+				: m_query( std::move(sql)), m_context(context), m_parent( parent)
 			{ m_query.next(); }
 
-			explicit ResultSet( const QSqlQuery& sql, QObject* parent = nullptr)
+			explicit ResultSet(
+				const QSqlQuery& sql,
+				const S11nContext& context,
+				QObject* parent = nullptr)
 				: m_query( sql), m_parent( parent)
 			{ m_query.next(); }
 
+			inline
 			iterator begin() const
 			{ return iterator( const_cast<ResultSet&>(*this), m_query.at()); }
 
+			inline
 			iterator end() const
-			{ return iterator( const_cast<ResultSet&>(*this), 
+			{ return iterator( const_cast<ResultSet&>(*this),
 					static_cast<int>( QSql::AfterLastRow));}
 
+			inline
+			const S11nContext* context() const noexcept
+			{ return &m_context; }
+
 			protected:
-				QSqlQuery m_query;	///< Query.
-				QObject* m_parent;	///< Parent used for created objects.
+				QSqlQuery m_query;			///< Query.
+				const S11nContext m_context;
+				QObject* m_parent;			///< Parent used for created objects.
 	};
 }}

@@ -98,7 +98,8 @@ namespace qe { namespace orm {
 						findHelper.findEqualProperty( 
 							*fvi.model, 
 							fvi.context, 
-							properties), 
+							properties),
+						*fvi.context,
 						parent);
 				}
 
@@ -109,7 +110,7 @@ namespace qe { namespace orm {
 				QObject* parent = nullptr) const
 			{
 				const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
-				return ResultSet<T>( query, parent);
+				return ResultSet<T>( query, *fvi.context, parent);
 			}
 
 			template< class T>
@@ -122,6 +123,7 @@ namespace qe { namespace orm {
 				
 				return ResultSet<T>(
 						nativeQuery( fvi.context, query),
+						*fvi.context,
 						parent);
 			}
 
