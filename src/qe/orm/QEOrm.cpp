@@ -136,7 +136,7 @@ namespace {
 
 QEOrm::FindValidatedInputs::FindValidatedInputs( 
 	const QMetaObject* mo, 
-	S11nContext* const ctx,
+	const S11nContext* const ctx,
 	std::set<QString>& checkedTables,
 	std::mutex & checkedTablesMtx)
 		: model( getModelOrThrow( mo)), 

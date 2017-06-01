@@ -50,12 +50,12 @@ namespace qe { namespace orm {
 			{
 				FindValidatedInputs( 
 						const QMetaObject* mo, 
-						S11nContext* const ctx,
+						const S11nContext* const ctx,
 						std::set<QString>& checkedTables,
 						std::mutex & checkedTablesMtx);
 				
 				entity::ModelShd model;
-				S11nContext* context;
+				const S11nContext* context;
 				std::unique_ptr<S11nContext> contextScopeGuard;
 			};
 
