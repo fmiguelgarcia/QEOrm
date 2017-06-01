@@ -91,7 +91,7 @@ namespace qe { namespace orm {
 					const S11nContext* const context = nullptr,
 					QObject* parent = nullptr) const
 				{
-					const FindValidatedInputs fvi( & T::staticMetaObject, context);
+					const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 					FindHelper findHelper;
 					
 					return ResultSet<T>( 
@@ -108,7 +108,7 @@ namespace qe { namespace orm {
 				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				const FindValidatedInputs fvi( & T::staticMetaObject, context);
+				const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 				return ResultSet<T>( query, parent);
 			}
 
@@ -118,7 +118,7 @@ namespace qe { namespace orm {
 				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				const FindValidatedInputs fvi( & T::staticMetaObject, context);
+				const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 				
 				return ResultSet<T>(
 						nativeQuery( fvi.context, query),
