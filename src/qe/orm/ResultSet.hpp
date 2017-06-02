@@ -144,7 +144,7 @@ namespace qe { namespace orm {
 				const QSqlQuery& sql,
 				const S11nContext& context,
 				QObject* parent = nullptr)
-				: m_query( sql), m_parent( parent)
+				: m_query( sql), m_context(context), m_parent( parent)
 			{ m_query.next(); }
 
 			inline
