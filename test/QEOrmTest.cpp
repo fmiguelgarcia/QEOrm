@@ -83,7 +83,7 @@ QEOrmTest::QEOrmTest( QObject* parent)
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 
-#if 1
+#if 0
 	db.setDatabaseName("/tmp/QEOrmTest.db");
 #else
 	db.setDatabaseName(":memory:");
