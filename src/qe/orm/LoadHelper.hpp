@@ -39,7 +39,7 @@ namespace qe { namespace orm {
 			virtual ~LoadHelper();
 
 			void load( 
-				const entity::ModelShd& model, 
+				const entity::Model& model,
 				const S11nContext* const context, 
 				QObject *const target) const;
 
@@ -49,7 +49,7 @@ namespace qe { namespace orm {
 				QObject *const target) const;
 
 			void loadOneToMany(
-				const entity::ModelShd& model,
+				const entity::Model& model,
 				const S11nContext *const source,
 				QObject* const target) const;
 
@@ -61,8 +61,21 @@ namespace qe { namespace orm {
 				const entity::Model& refModel,
 				const entity::RelationDef& fkDef, 
 				const S11nContext* const source,
-				const QMetaObject* refMetaObjEntity, 
 				QObject* const target) const;
+
+			void loadOneToManyUserType(
+				const entity::Model& refModel,
+				const entity::RelationDef& relationDef,
+				const S11nContext* const context,
+				QObject* const target,
+				const QByteArray& targetProperty ) const;
+
+			void loadOneToManyStringList(
+				const entity::Model& refModel,
+				const entity::RelationDef& relationDef,
+				const S11nContext* const context,
+				QObject* const target,
+				const QByteArray& targetProperty ) const;
 
 			Q_DECLARE_PRIVATE( LoadHelper);
 	};

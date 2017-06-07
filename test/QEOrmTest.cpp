@@ -83,7 +83,7 @@ QEOrmTest::QEOrmTest( QObject* parent)
 	// Settup database
 	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 
-#if 0
+#if 1
 	db.setDatabaseName("/tmp/QEOrmTest.db");
 #else
 	db.setDatabaseName(":memory:");
@@ -140,6 +140,23 @@ void QEOrmTest::checkDelete()
 	S11nContext ctxt( QVariantList{ book->id });
 	QEOrm::instance().load( &loadedBook, &ctxt);
 	QVERIFY( loadedBook.id == 0);
+}
+
+void QEOrmTest::checkQStringList()
+{
+	unique_ptr<Book> book{ createBook1()};
+	book->addFootNote( "Footnote 1");
+	book->addFootNote( "Footnote 2");
+	book->addFootNote( "Footnote 3");
+
+	QEOrm::instance().save( book.get());
+	QVERIFY( book->id != 0);
+
+	Book loadedBook;
+	S11nContext ctxt( QVariantList{ book->id });
+	QEOrm::instance().load( &loadedBook, &ctxt);
+	QVERIFY( loadedBook.id != 0);
+	QVERIFY( loadedBook == *book);
 }
 
 

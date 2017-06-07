@@ -46,7 +46,7 @@ namespace {
 	{
 		QStringList colDbNames;
 		for( const auto& colDef: container)
-			colDbNames << colDef->entityName();
+			colDbNames << colDef.entityName();
 		return colDbNames;	
 	}
 
@@ -96,8 +96,8 @@ namespace {
 	}
 	
 	struct TypeSizeLessComparator {
-		inline bool operator()( const EntityDefShd& left, const EntityDefShd& right) const
-		{ return estimateTypeSize(*left) < estimateTypeSize(*right);}
+		inline bool operator()( const EntityDef& left, const EntityDef& right) const
+		{ return estimateTypeSize(left) < estimateTypeSize(right);}
 	};
 }
 
@@ -130,11 +130,11 @@ QString ANSIGenerator::updateStatement( const Model& model) const
 		if( find( begin( pkDef), end( pkDef), eDef) != end( pkDef))
 			continue;
 		
-		if( eDef->mappingType() == EntityDef::MappingType::NoMappingType)
+		if( eDef.mappedType() == EntityDef::MappedType::NoMappedType)
 		{
-			setClausure << (eDef->entityName()
+			setClausure << (eDef.entityName()
 				% QStringLiteral( " = :") 
-				% eDef->entityName());
+				% eDef.entityName());
 		}
 	}
 
@@ -155,10 +155,10 @@ QString ANSIGenerator::insertStatement( const Model& model) const
 
 	for( const auto& eDef: model.entityDefs())
 	{
-		if( eDef->mappingType() == EntityDef::MappingType::NoMappingType
-			|| eDef->mappingType() == EntityDef::MappingType::ManyToOne)
+		if( eDef.mappedType() == EntityDef::MappedType::NoMappedType
+			|| eDef.mappedType() == EntityDef::MappedType::ManyToOne)
 		{
-			const QString & dbColName = eDef->entityName();
+			const QString & dbColName = eDef.entityName();
 			columnNames << dbColName;
 			values << QChar(':') % dbColName;
 		}
@@ -183,10 +183,10 @@ QString ANSIGenerator::createTableIfNotExistsStatement( const Model& model) cons
 	
 	for( const auto& eDef: entityDefsOrdered )
 	{
-		if( eDef->mappingType() == EntityDef::MappingType::NoMappingType
-			|| eDef->mappingType() == EntityDef::MappingType::ManyToOne)
+		if( eDef.mappedType() == EntityDef::MappedType::NoMappedType
+			|| eDef.mappedType() == EntityDef::MappedType::ManyToOne)
 		{
-			sqlColumnDef << makeColumnDefinition( model, *eDef);
+			sqlColumnDef << makeColumnDefinition( model, eDef);
 		}
 	}
 
@@ -203,6 +203,21 @@ QString ANSIGenerator::createTableIfNotExistsStatement( const Model& model) cons
 
 	return stmt;
 }
+
+#if 0
+QString ANSIGenerator::createOneToManySimpleType(
+	const QString& tableName,
+	const EntityDefList& fk,
+	const EntityDef& eDef) const
+{
+	const QString stmt =
+		QStringLiteral( "CREATE TABLE IF NOT EXISTS `")
+		% tableName % QStringLiteral( "` (")
+		;
+
+	return stmt;
+}
+#endif
 
 QString ANSIGenerator::selectionUsingPrimaryKey( const Model& model) const
 {
@@ -234,8 +249,8 @@ QString ANSIGenerator::projection( const Model &model) const
 	sort( begin( entityDefsOrdered), end( entityDefsOrdered), TypeSizeLessComparator());
 	
 	for( const auto& eDef : entityDefsOrdered)
-		if( eDef->mappingType() == EntityDef::MappingType::NoMappingType)
-			columns << eDef->entityName();
+		if( eDef.mappedType() == EntityDef::MappedType::NoMappedType)
+			columns << eDef.entityName();
 
 	const QString stmt = 
 		QStringLiteral( "SELECT ") 
@@ -281,7 +296,8 @@ QString ANSIGenerator::makeColumnDefinition( const Model& model,
 		os << QStringLiteral( "DEFAULT ") << column.defaultValue().toString() << space;
 		
 	// Auto-increment
-	if( column.isAutoIncrement())
+	if( column.isAutoIncrement()
+			&& column.mappedType() == EntityDef::MappedType::NoMappedType)
 		os << autoIncrementKeyWord() << space; 
 	
 	return sqlColumnDef;
@@ -365,7 +381,7 @@ QString ANSIGenerator::databaseEnumerationType(
 {
 	QString dbType;
 
-	QMetaEnum* me = eDef.enumerator();
+	const auto me = eDef.enumerator();
 	if( me)
 	{
 		QStringList enumKeys;
@@ -388,9 +404,9 @@ QString ANSIGenerator::whereClausure( const EntityDefList &colDefList) const
 {
 	QStringList pkWhereClause;
 	for( const auto& colDef : colDefList) 
-		pkWhereClause << ( colDef->entityName() 
+		pkWhereClause << ( colDef.entityName()
 				% QStringLiteral(" = :") 
-				% colDef->entityName());
+				% colDef.entityName());
 
 	if( pkWhereClause.empty())	
 		pkWhereClause << QStringLiteral( " 1 = 1 ");
@@ -404,9 +420,10 @@ QString ANSIGenerator::autoIncrementKeyWord() const
 QString ANSIGenerator::makePrimaryKeyDefinition(const Model &model)  const
 {
 	QString pkDef;
-	const auto pk = model.primaryKeyDef();
+	auto pk = model.primaryKeyDef();
 	if( ! pk.empty())
 	{
+
 		const QStringList pkColumNames = columnDbNames(pk);
 		pkDef = QStringLiteral( ", PRIMARY KEY (")
 			% pkColumNames.join( QStringLiteral( ", "))
@@ -421,14 +438,15 @@ QString ANSIGenerator::makeForeignKeyDefinition( const Model& model) const
 	QTextStream os( &fkDef);
 	const QChar comma = QLatin1Char(',');
 
-	for( const auto& fkDef : model.referencesManyToOneDefs())
+	const auto refManyToOne = model.referenceManyToOne();
+	if( refManyToOne)
 	{
-		const auto reference = fkDef->reference();
-		const QStringList fkColNames = columnDbNames( fkDef->relationKey());
-		const QStringList refColNames = columnDbNames( reference->primaryKeyDef());
+		const auto& reference = refManyToOne->reference();
+		const QStringList fkColNames = columnDbNames( refManyToOne->relationKey());
+		const QStringList refColNames = columnDbNames( reference.primaryKeyDef());
 
 		os << QStringLiteral( ", FOREIGN KEY (") << fkColNames.join( comma)  
-			<< QStringLiteral( ") REFERENCES ") << reference->name() << QLatin1Char('(')
+			<< QStringLiteral( ") REFERENCES ") << reference.name() << QLatin1Char('(')
 			<< refColNames.join( comma) << QLatin1Char(')')
 			<< QStringLiteral( " ON DELETE CASCADE")
 			<< QStringLiteral( " ON UPDATE CASCADE");
@@ -438,14 +456,14 @@ QString ANSIGenerator::makeForeignKeyDefinition( const Model& model) const
 
 QString ANSIGenerator::foreignKeyWhereClausure( const RelationDef& fkDef) const 
 {
-	const EntityDefList fkList = fkDef.relationKey();
-	const EntityDefList pkList = fkDef.reference()->primaryKeyDef();
+	const EntityDefList& fkList = fkDef.relationKey();
+	const EntityDefList pkList = fkDef.reference().primaryKeyDef();
 
 	QStringList filters;
 	for( uint i = 0; i< fkList.size(); ++i)
-		filters << (fkList[i]->entityName()
+		filters << (fkList[i].entityName()
 				% QStringLiteral( " = :")
-				% pkList[i]->entityName());
+				% pkList[i].entityName());
 
 	return filters.join( QStringLiteral( " AND "));
 }
@@ -460,3 +478,4 @@ QString ANSIGenerator::deleteStatement( const Model& model) const
 
 	return stmt;
 }
+

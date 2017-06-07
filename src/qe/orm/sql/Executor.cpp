@@ -63,7 +63,7 @@ void bindNoMappingColumns( const Model& model, QSqlQuery& query,
 void bindMappingOneToMany( const Model& model, QSqlQuery& query,  
 	const ObjectContext& context);
 
-Q_LOGGING_CATEGORY( qe::orm::sql::lcExecutor, "com.dmious.qe.orm.sqlHelper");
+Q_LOGGING_CATEGORY( qe::orm::sql::lcExecutor, "com.dmious.qe.orm.sql.executor");
 
 // Class Generator
 // ============================================================================
@@ -133,6 +133,9 @@ QSqlQuery Executor::execute( QSqlQuery& query, const QString& errorMsg) const
 		const QSqlError sqlError = query.lastError();
 		if( sqlError.type() != QSqlError::NoError )
 		{
+			qCCritical( lcExecutor, "SQL Error '%s' on '%s'",
+				qUtf8Printable( sqlError.text()),
+				qUtf8Printable( query.lastQuery()));
 			Exception::makeAndThrow(
 				errorMsg 
 				% QString( "SQL Error %1: %2")
@@ -243,14 +246,14 @@ void bindNoMappingColumns( const Model& model, QSqlQuery& query,
 {
 	for( const auto& colDef: model.entityDefs())
 	{
-		if( colDef->mappingType() == EntityDef::MappingType::NoMappingType)
+		if( colDef.mappedType() == EntityDef::MappedType::NoMappedType)
 		{
-			QVariant value = source->property( colDef->propertyName());
-			if( colDef->isAutoIncrement() && value.toInt() == 0)
+			QVariant value = source->property( colDef.propertyName());
+			if( colDef.isAutoIncrement() && value.toInt() == 0)
 				value = QVariant();
-			if( colDef->isEnum())
-				value = colDef->enumerator()->valueToKey( value.toInt());
-			query.bindValue( (QStringLiteral(":") % colDef->entityName()), value);
+			if( colDef.isEnum())
+				value = colDef.enumerator()->valueToKey( value.toInt());
+			query.bindValue( (QStringLiteral(":") % colDef.entityName()), value);
 		}
 	}
 }
@@ -261,17 +264,18 @@ void bindMappingOneToMany( const Model& model, QSqlQuery& query,
 	if( !context.empty())
 	{
 		QObject *contextTopObject = context.back();
-		for( const auto& fkDef : model.referencesManyToOneDefs())
+		const auto fkDef = model.referenceManyToOne();
+		if( fkDef)
 		{
 			const auto& foreignKeys = fkDef->relationKey();
-			const auto& refKeys = fkDef->reference()->primaryKeyDef();
+			const auto& refKeys = fkDef->reference().primaryKeyDef();
 			for( uint i = 0; i < foreignKeys.size(); ++i) 
 			{
 				const QVariant value = contextTopObject->property( 
-						refKeys[i]->propertyName()); 
+						refKeys[i].propertyName());
 
 				query.bindValue( 
-						QString( ":%1").arg( foreignKeys[i]->entityName()),
+						QString( ":%1").arg( foreignKeys[i].entityName()),
 						value);
 			}
 		}

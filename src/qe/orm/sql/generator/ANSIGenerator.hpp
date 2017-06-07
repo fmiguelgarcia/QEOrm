@@ -62,8 +62,7 @@ namespace qe { namespace orm { namespace sql {
 					const entity::EntityDefList& entities) const override;
 
 			QString deleteStatement( 
-				const entity::Model& model) const override; 
-
+				const entity::Model& model) const override;
 
 		protected:
 			QString projection( const entity::Model &model) const override;

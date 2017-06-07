@@ -57,15 +57,9 @@ void ResultSetIteratorBase::loadFromQuery(
 	QSqlQuery& query,
 	const S11nContext* const context) const
 {
-	ModelShd model = ModelRepository::instance().model( o->metaObject());
-	if( !model)
-	{
-		Exception::makeAndThrow(
-			QStringLiteral( "QE Orm cannot get the model for object type ")
-			% o->metaObject()->className());
-	}
+	const Model model = ModelRepository::instance().model( o->metaObject());
 
 	LoadHelper loader;
-	loader.loadObjectFromRecord( *model, query.record(), o);
+	loader.loadObjectFromRecord( model, query.record(), o);
 	loader.loadOneToMany( model, context, o);
 }

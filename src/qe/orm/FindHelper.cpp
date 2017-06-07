@@ -29,8 +29,8 @@
 #include <qe/orm/sql/generator/AbstractGenerator.hpp>
 #include <qe/orm/sql/GeneratorRepository.hpp>
 #include <qe/orm/S11nContext.hpp>
-
 #include <qe/entity/Model.hpp>
+#include <qe/entity/EntityDef.hpp>
 #include <QSqlQuery>
 
 using namespace qe::orm;
@@ -52,11 +52,11 @@ QSqlQuery FindHelper::findEqualProperty(
 
 	for( const auto& propItem: properties)
 	{
-		EntityDefShd eDef = model.findEntityDef( 
-				Model::findByPropertyName{ propItem.first.toLocal8Bit()});
+		auto eDef = model.findEntityDef(
+				FindEntityDefByPropertyName{ propItem.first.toUtf8()});
 		if( eDef )
 		{
-			entityList.push_back( eDef);
+			entityList.push_back( *eDef);
 			values.push_back( propItem.second);
 		}
 	}

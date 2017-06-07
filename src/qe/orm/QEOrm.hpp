@@ -28,6 +28,7 @@
 #include <qe/orm/Global.hpp>
 #include <qe/entity/AbstractSerializer.hpp>
 #include <qe/entity/Types.hpp>
+#include <qe/entity/Model.hpp>
 #include <qe/orm/ResultSet.hpp>
 #include <qe/orm/FindHelper.hpp>
 #include <QVariantList>
@@ -54,7 +55,7 @@ namespace qe { namespace orm {
 						std::set<QString>& checkedTables,
 						std::mutex & checkedTablesMtx);
 				
-				entity::ModelShd model;
+				entity::Model model;
 				const S11nContext* context;
 				std::unique_ptr<S11nContext> contextScopeGuard;
 			};
@@ -96,7 +97,7 @@ namespace qe { namespace orm {
 					
 					return ResultSet<T>( 
 						findHelper.findEqualProperty( 
-							*fvi.model, 
+							fvi.model,
 							fvi.context, 
 							properties),
 						*fvi.context,
@@ -129,12 +130,12 @@ namespace qe { namespace orm {
 
 		protected:
 			void save(  
-				const qe::entity::ModelShd& model, 
+				const qe::entity::Model& model,
 				QObject *const source, 
 				qe::entity::AbstractS11nContext* const target) const override;
 
 			void load( 
-				const qe::entity::ModelShd& model, 
+				const qe::entity::Model& model,
 				QObject *const target,
 				const qe::entity::AbstractS11nContext* const source) const override;
 

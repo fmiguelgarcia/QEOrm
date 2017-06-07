@@ -37,7 +37,7 @@ namespace qe { namespace orm {
 			virtual ~DeleteHelper();
 
 			void erase( 
-				const entity::ModelShd& model, 
+				const entity::Model& model,
 				QObject *const source, 
 				S11nContext* const context) const;
 

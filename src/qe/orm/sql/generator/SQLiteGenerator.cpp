@@ -41,12 +41,13 @@ QString SQLiteGenerator::makeColumnDefinition(
 	const Model& model, const EntityDef& column) const
 {
 	QString sqlColumnDef;
-	if( !column.isAutoIncrement())
-			sqlColumnDef = ANSIGenerator::makeColumnDefinition( model, column);
-	else
+	if( column.isAutoIncrement()
+			&& column.mappedType() == EntityDef::MappedType::NoMappedType)
 		sqlColumnDef = QString( "'%1' INTEGER PRIMARY KEY %2 ")
 			.arg( column.entityName())
 			.arg( autoIncrementKeyWord());
+	else
+		sqlColumnDef = ANSIGenerator::makeColumnDefinition( model, column);
 
 	return sqlColumnDef;
 }
@@ -55,7 +56,7 @@ QString SQLiteGenerator::makePrimaryKeyDefinition( const Model &model) const
 {
 	QString sqlStmt;
 	
-	const auto autoIncrementDef = model.findEntityDef( Model::findByAutoIncrement{});
+	const auto autoIncrementDef = model.findEntityDef( FindEntityDefByAutoIncrement{});
 	if( ! autoIncrementDef) 
 		sqlStmt = ANSIGenerator::makePrimaryKeyDefinition( model);
 

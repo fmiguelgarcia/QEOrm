@@ -2,7 +2,8 @@
 
 bool Book::operator == (const Book& other) const
 {
-	return id == other.id
+	bool equality =
+		id == other.id
 		&& title == other.title
 		&& author == other.author
 		&& pages == other.pages
@@ -13,6 +14,18 @@ bool Book::operator == (const Book& other) const
 		// entityDisable is not stored/loaded from db.
 		// && entityDisable == other.entityDisable
 		&& chapters == other.chapters;
+
+	if( equality)
+	{
+		QStringList thisFootNotes = m_footNotes;
+		QStringList otherFootNotes = other.m_footNotes;
+		thisFootNotes.sort();
+		otherFootNotes.sort();
+
+		equality = thisFootNotes == otherFootNotes;
+	}
+
+	return equality;
 }
 
 void Book::setType(const Book::Type type)
@@ -23,4 +36,17 @@ void Book::setType(const Book::Type type)
 Book::Type Book::type() const
 {
 	return m_type;
+}
+
+QStringList Book::footNotes() const
+{ return m_footNotes; }
+
+void Book::addFootNote( const QString& footNote)
+{
+	m_footNotes << footNote;
+}
+
+void Book::removeFootNote( const QString& footNote)
+{
+	m_footNotes.removeAll( footNote);
 }

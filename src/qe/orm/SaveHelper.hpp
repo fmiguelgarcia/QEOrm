@@ -26,6 +26,8 @@
 #pragma once
 #include <qe/entity/Types.hpp>
 
+class QByteArray;
+class QVariant;
 namespace qe { namespace orm { 
 	class SaveHelperPrivate;
 	class S11nContext;
@@ -36,12 +38,12 @@ namespace qe { namespace orm {
 			virtual ~SaveHelper();
 
 			void save( 
-				const entity::ModelShd& model, 
+				const entity::Model& model,
 				QObject *const source, 
 				S11nContext* const context) const;
 
 			QStringList createTables( 
-				const entity::ModelShd model, 
+				const entity::Model& model,
 				S11nContext* const context) const; 
 
 		protected:
@@ -49,6 +51,17 @@ namespace qe { namespace orm {
 				const entity::Model &model, 
 				QObject *source, 
 				S11nContext* const context) const;
+
+			void saveOneToManyUserType(
+				const QByteArray& propertyName,
+				const QVariant& propertyValue,
+				S11nContext* const context) const;
+
+			void saveOneToManyStrinList(
+				const QByteArray& propertyName,
+				const QVariant& propertyValue,
+				const entity::Model& refModel,
+				S11nContext* const context ) const;
 
 			SaveHelperPrivate *d_ptr;
 

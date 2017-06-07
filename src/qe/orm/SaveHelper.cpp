@@ -50,6 +50,17 @@ using TableStatementList = std::vector<TableStatement>;
 
 namespace {
 
+	const QObject* getPropertySource(
+		const EntityDef& eDef,
+		S11nContext* const context,
+		const QObject* defaultSource)
+	{
+		if( eDef.mappedType() != EntityDef::MappedType::NoMappedType)
+			defaultSource = context->top();
+
+		return defaultSource;
+	}
+
 	/// @brief It checks if @p source exits into database.
 	/// It uses the primary key from @p model.
 	bool exists(
@@ -58,13 +69,18 @@ namespace {
 			S11nContext* const context)
 	{
 		QVariantList pkValues;
-		for( const auto& colDef: model.primaryKeyDef())
+		const auto & modelPk = model.primaryKeyDef();
+		for( const auto& colDef: modelPk)
 		{
-			const QVariant value = source->property( colDef->propertyName());
-			if( colDef->isAutoIncrement() && value.toInt() == 0)
-				pkValues << QVariant();
-			else
-				pkValues << value;
+			const QObject* propertySource = getPropertySource( colDef, context, source);
+			if( propertySource)
+			{
+				const QVariant value = propertySource->property( colDef.propertyName());
+				if( colDef.isAutoIncrement() && value.toInt() == 0)
+					pkValues << QVariant();
+				else
+					pkValues << value;
+			}
 		}
 
 		// Execute sql
@@ -115,11 +131,36 @@ namespace {
 		const QVariant insertId = ds.lastInsertId();
 		if( ! insertId.isNull())
 		{
-			const auto eDef = model.findEntityDef( Model::findByAutoIncrement{});
+			const auto eDef = model.findEntityDef(
+				FindEntityDefByAutoIncrement{});
 			if( eDef)
 				source->setProperty( eDef->propertyName(), insertId);
 		}
 	}
+
+#if 0
+	QString createOneToManySimpleType(
+		const ModelShd fkModel,
+		S11nContext* const context,
+		const EntityDef& eDef)
+	{
+		const QString table = fkModel->name() % "_" % name;
+		const auto fk = fkModel->primaryKeyDef();
+
+		const QString stmt = context->statementMaker()
+			->createOneToManySimpleType(
+				table,
+				fk,
+				eDef);
+
+		context->execute(
+			stmt,
+			QVariantList(),
+			QStringLiteral( "QE Orm cannot create 'one to many' for a simple type"));
+
+		return table;
+	}
+#endif
 }
 
 // SaveHelper
@@ -129,7 +170,7 @@ SaveHelper::~SaveHelper()
 {}
 
 void SaveHelper::save( 
-		const ModelShd& model, 
+		const Model& model,
 		QObject *const source, 
 		S11nContext* const context) const
 {
@@ -138,12 +179,53 @@ void SaveHelper::save(
 		Exception::makeAndThrow(
 			QStringLiteral( "SQL Save helper does NOT support recursive relations"));	
 
-	if( exists( *model, source, context))
-		update( *model, source, context);
+	if( exists( model, source, context))
+		update( model, source, context);
 	else
-		insert( *model, source, context);
+		insert( model, source, context);
 
-	saveOneToMany( *model, source, context);
+	saveOneToMany( model, source, context);
+}
+
+
+void SaveHelper::saveOneToManyUserType(
+	const QByteArray& propertyName,
+	const QVariant& propertyValue,
+	S11nContext* const context) const
+{
+	if( ! propertyValue.canConvert<QVariantList>())
+		Exception::makeAndThrow(
+			QStringLiteral("QE Orm can only use QVariantList for mapping property %1")
+			.arg( propertyName.constData()));
+
+	QVariantList values = propertyValue.toList();
+	for( QVariant& value : values)
+	{
+		QObject *refItem = value.value<QObject*>();
+		if( refItem )
+		{
+			Model refModel = ModelRepository::instance().model( refItem->metaObject());
+			save( refModel, refItem, context);
+		}
+	}
+}
+
+void SaveHelper::saveOneToManyStrinList(
+	const QByteArray& propertyName,
+	const QVariant& propertyValue,
+	const Model& refModel,
+	S11nContext* const context ) const
+{
+	uint index = 0;
+	const QStringList values = propertyValue.toStringList();
+
+	for( const QString& value: values)
+	{
+		QObject adapter;
+		adapter.setProperty( "idx", index++);
+		adapter.setProperty( propertyName, value);
+		save( refModel, &adapter, context);
+	}
 }
 
 void SaveHelper::saveOneToMany( 
@@ -155,54 +237,73 @@ void SaveHelper::saveOneToMany(
 	
 	for( const auto& colDef : model.entityDefs())
 	{
-		if( colDef->mappingType() == EntityDef::MappingType::OneToMany)
+		if( colDef.mappedType() == EntityDef::MappedType::OneToMany)
 		{
-			const QByteArray& propertyName = colDef->propertyName();
+			const QByteArray& propertyName = colDef.propertyName();
 			const QVariant propertyValue = source->property( propertyName);
-			if( ! propertyValue.canConvert<QVariantList>())
-				Exception::makeAndThrow(
-					QStringLiteral("QE Orm can only use QVariantList for mapping property %1") 
-						.arg( propertyName.constData()));
+			const int type = colDef.propertyType();
 
-			QVariantList values = propertyValue.toList();
-			for( QVariant& value : values)
+			switch( type)
 			{
-				QObject *refItem = value.value<QObject*>();
-				if( refItem )
-				{
-					ModelShd refModel = ModelRepository::instance().model( refItem->metaObject());
-					save( refModel, refItem, context);
-				}
+				case QMetaType::Type::QVariantList:
+					saveOneToManyUserType( propertyName, propertyValue, context);
+					break;
+				case QMetaType::Type::QStringList:
+					{
+						optional<Model> colDefModel = colDef.mappedModel();
+						if( colDefModel)
+							saveOneToManyStrinList( propertyName, propertyValue, *colDefModel, context);
+						break;
+					}
+				default:
+					Exception::makeAndThrow(
+						QString( "Unsupported 'One to Many' relation for type %1 on '%2'")
+							.arg( type).arg( colDef.entityName()));
 			}
 		}
 	}
 }
 
 QStringList SaveHelper::createTables( 
-	const ModelShd model, 
+	const Model& model,
 	S11nContext* const context) const
 {
 	QStringList tables;
-	tables << model->name();
+	tables << model.name();
 
 	// Create table
 	const QString stmt = context->statementMaker()
-		->createTableIfNotExistsStatement( *model);
+		->createTableIfNotExistsStatement( model);
 
 	context->execute( 
 			stmt, 
 			QVariantList{}, 
 			QStringLiteral("QE Orm cannot create the table ")
-				% model->name());
+				% model.name());
 
 	// Find relations.
-	for( const auto& colDef: model->entityDefs())
+	for( const auto& colDef: model.entityDefs())
 	{
-		if( colDef->mappingType() == EntityDef::MappingType::OneToMany)
+		const auto mappingType = colDef.mappedType();
+		if( mappingType == EntityDef::MappedType::OneToMany)
 		{
-			auto mapModel = ModelRepository::instance().model( colDef->mappingEntity());
-			const auto refTables = createTables( mapModel, context);
-			copy( begin(refTables), end(refTables), back_inserter(tables));
+			const auto mappedModel = colDef.mappedModel();
+			if( mappedModel)
+			{
+				const auto refTables = createTables( *mappedModel, context);
+				copy( begin(refTables), end(refTables), back_inserter(tables));
+			}
+			else
+			{
+				Exception::makeAndThrow(
+					QString( "Entity definition (%1) has not model")
+						.arg( colDef.entityName()));
+#if 0
+				// Array of simple types.
+				const auto refTable = createOneToManySimpleType( context);
+				tables.push_back( refTable);
+#endif
+			}
 		}
 	}
 

@@ -36,14 +36,14 @@ DeleteHelper::~DeleteHelper()
 {}
 
 void DeleteHelper::erase( 
-	const ModelShd& model, 
+	const Model& model,
 	QObject *const source, 
 	S11nContext* const context) const
 {
-	const QString stmt = context->statementMaker()->deleteStatement( *model);
+	const QString stmt = context->statementMaker()->deleteStatement( model);
 
 	context->execute( 
-		*model, 
+		model,
 		stmt, 
 		source,
 		QStringLiteral( "QE Orm cannot delete an object."));	

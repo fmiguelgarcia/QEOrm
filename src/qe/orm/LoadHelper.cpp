@@ -32,6 +32,7 @@
 #include <qe/entity/Model.hpp>
 #include <qe/entity/ModelRepository.hpp>
 #include <qe/entity/EntityDef.hpp>
+#include <qe/entity/RelationDef.hpp>
 #include <qe/common/Exception.hpp>
 
 #include <QStringBuilder>
@@ -45,17 +46,39 @@ using namespace qe::entity;
 using namespace qe::orm;
 using namespace std;
 
+namespace {
+
+	QSqlQuery execSelectUsingForeignKey (
+		const Model& refModel,
+		const RelationDef& relationDef,
+		const S11nContext* const context,
+		QObject* const target)
+	{
+		// Cursor over many objects
+		const auto stmtMaker = context->statementMaker();
+		const QString stmt = stmtMaker->selectionUsingForeignKey(
+			refModel, relationDef);
+
+		QSqlQuery ds = context->execute(
+			refModel, stmt, target,
+			QStringLiteral( "QE Orm cannot fetch object from a relation."));
+
+		return ds;
+	}
+
+}
+
 LoadHelper::~LoadHelper()
 {}
 
 void LoadHelper::load( 
-	const ModelShd& model, 
+	const Model& model,
 	const S11nContext *const context, 
 	QObject *const target) const
 {
 	const QVariantList & pk = context->primaryKey();
 	const auto stmtMaker = context->statementMaker(); 
-	const QString stmt = stmtMaker->selectionUsingPrimaryKey( *model);
+	const QString stmt = stmtMaker->selectionUsingPrimaryKey( model);
 
 	QSqlQuery ds = context->execute( 
 			stmt, 
@@ -65,7 +88,7 @@ void LoadHelper::load(
 	const bool resultAvailable = ds.next();
 	if( resultAvailable)
 	{
-		loadObjectFromRecord( *model, ds.record(), target);
+		loadObjectFromRecord( model, ds.record(), target);
 		loadOneToMany( model, context, target);
 	}
 	else if( ds.lastError().type() != QSqlError::NoError)
@@ -78,7 +101,7 @@ void LoadHelper::load(
 			QString( "QE Orm cannot fetch any row on table '%1' "
 				"using the following values as primary key {%2}. "
 				"SQL error: %3")
-				.arg( model->name()).arg( pkStrValues.join( ","))
+				.arg( model.name()).arg( pkStrValues.join( ","))
 				.arg( ds.lastError().text()));
 	}
 }
@@ -90,7 +113,7 @@ void LoadHelper::loadObjectFromRecord( const Model& model,
 	{
 		const QSqlField field = record.field( i);
 		const auto colDef = model.findEntityDef( 
-				Model::findByEntityName{ field.name()});
+				FindEntityDefByEntityName{ field.name()});
 	
 		if( colDef )
 			target->setProperty( colDef->propertyName().constData(), 
@@ -98,66 +121,108 @@ void LoadHelper::loadObjectFromRecord( const Model& model,
 	}
 }
 
+void LoadHelper::loadOneToManyUserType(
+	const Model& refModel,
+	const RelationDef& relationDef,
+	const S11nContext* const context,
+	QObject* const target,
+	const QByteArray& targetProperty ) const
+{
+	QVariantList wrapperList = loadObjectsUsingForeignKey(
+		refModel, relationDef, context, target);
+
+	target->setProperty( targetProperty, wrapperList);
+}
+
+void LoadHelper::loadOneToManyStringList(
+	const Model& refModel,
+	const RelationDef& relationDef,
+	const S11nContext* const context,
+	QObject* const target,
+	const QByteArray& targetProperty) const
+{
+	QSqlQuery ds = execSelectUsingForeignKey (
+		refModel, relationDef, context, target);
+
+	QStringList values;
+	QVariant value;
+	int columnIdx = -1;
+	while( ds.next())
+	{
+		if( Q_UNLIKELY(columnIdx == -1))
+			columnIdx = ds.record().indexOf( targetProperty);
+
+		if( Q_LIKELY(columnIdx != -1))
+			values << ds.value( columnIdx).toString();
+	}
+
+	target->setProperty( targetProperty, values);
+}
+
 void LoadHelper::loadOneToMany( 
-	const ModelShd& model,
+	const Model& model,
 	const S11nContext *const context, 
 	QObject* const target) const
 {
 	ScopedS11Context _( target, context);
 	
-	for( const auto& colDef : model->entityDefs())
+	for( const auto& eDef : model.entityDefs())
 	{
-		if( colDef->mappingType() == EntityDef::MappingType::OneToMany)
+		if( eDef.mappedType() == EntityDef::MappedType::OneToMany)
 		{
-			ModelShd manyModel = ModelRepository::instance().model( colDef->mappingEntity());
-			auto fkDef = manyModel->findRelationTo( model);
-			if( fkDef )
-			{
-				QVariantList wrapperList = loadObjectsUsingForeignKey(
-					*manyModel, 
-					*fkDef, 
-					context, 
-					colDef->mappingEntity(), 
-					target);
+			optional<Model> manyModel = eDef.mappedModel();
+			if( !manyModel)
+				Exception::makeAndThrow(
+					QString( "Mapped Model '%1:%2' can NOT be found")
+						.arg( model.name(), eDef.entityName()));
 
-				const QByteArray& propertyName = colDef->propertyName();
-				target->setProperty( propertyName, wrapperList);
+			auto fkDef = manyModel->findRelationTo( model);
+			if( !fkDef)
+				Exception::makeAndThrow(
+					QString( "Relation definition in '%1' model can NOT be found")
+						.arg( manyModel->name()));
+
+			const QByteArray& targetProperty = eDef.propertyName();
+			const int type = eDef.propertyType();
+			switch( type)
+			{
+				case QMetaType::Type::QVariantList:
+					loadOneToManyUserType( *manyModel, *fkDef, context,  target, targetProperty);
+					break;
+				case QMetaType::Type::QStringList:
+					loadOneToManyStringList( *manyModel, *fkDef, context, target, targetProperty);
+					break;
+				default:
+					Exception::makeAndThrow(
+						QString( "Unsupported 'One to Many' relation for type %1 on '%2'")
+						.arg( type).arg( eDef.entityName()));
 			}
 		}
 	}
 }
-			
+
 QVariantList LoadHelper::loadObjectsUsingForeignKey( 
 	const Model& refModel,
 	const RelationDef& fkDef, 
 	const S11nContext* const context,
-	const QMetaObject* refMetaObjectEntity, 
 	QObject *const target) const
 {
 	QVariantList list;
-	ModelShd model = ModelRepository::instance().model( refMetaObjectEntity);
-
-	// Cursor over many objects
-	const auto stmtMaker = context->statementMaker(); 
-	const QString stmt = stmtMaker->selectionUsingForeignKey( refModel, fkDef);
-
-	QSqlQuery ds = context->execute( 
-			refModel, 
-			stmt, 
-			target,  
-			QStringLiteral( "QE Orm cannot fetch object from a relation."));
+	const QMetaObject* refMetaObject = refModel.metaObject();
+	QSqlQuery ds = execSelectUsingForeignKey (
+		refModel, fkDef, context, target);
 
 	while( ds.next())
 	{
 		// Create object.
-		QObject *refObj = refMetaObjectEntity->newInstance( Q_ARG( QObject*, target));
+		QObject *refObj = refMetaObject->newInstance( Q_ARG( QObject*, target));
 		if( !refObj)
 			Exception::makeAndThrow(
 				QStringLiteral( "QE Orm load helper cannot create an instance of class ")
-				% refMetaObjectEntity->className());
+				% refMetaObject->className());
 
 		const QSqlRecord record = ds.record();
-		loadObjectFromRecord( *model, record, refObj);
+		loadObjectFromRecord( refModel, record, refObj);
 		list.push_back( QVariant::fromValue(refObj));
 	}
 

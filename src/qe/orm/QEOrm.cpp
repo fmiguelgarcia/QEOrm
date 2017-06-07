@@ -63,13 +63,13 @@ namespace {
 	template< class T, class M>
 	void checkAndCreateDatabaseTables(
 			const qe::orm::SaveHelper& saveHelper,
-			const ModelShd& model,
+			const Model& model,
 			S11nContext* const context,
 			T& checkedTables,
 			M& checkedTablesMtx) 
 	{
 		const bool isAlreadyChecked = existsOrCreateUsingDoubleCheckeLocking( 
-				checkedTables, model->name(), checkedTablesMtx);
+				checkedTables, model.name(), checkedTablesMtx);
 		if( !isAlreadyChecked)
 		{
 			const QStringList tables = saveHelper.createTables( model, context);
@@ -79,19 +79,8 @@ namespace {
 		}
 	}
 
-	ModelShd getModelOrThrow( const QMetaObject* metaObject)
-	{
-		ModelShd model = ModelRepository::instance().model( metaObject);
-		if( !model)
-			Exception::makeAndThrow(
-					QStringLiteral( "QE Orm cannot find model for class ")
-					% metaObject->className());
-
-		return model;
-	}
-	
 	void checkAndCreateModel( 
-		const ModelShd& model, 
+		const Model& model,
 		const S11nContext* const context,
 		std::set<QString>& checkedTables,
 		std::mutex & checkedTablesMtx)
@@ -139,7 +128,7 @@ QEOrm::FindValidatedInputs::FindValidatedInputs(
 	const S11nContext* const ctx,
 	std::set<QString>& checkedTables,
 	std::mutex & checkedTablesMtx)
-		: model( getModelOrThrow( mo)), 
+		: model( ModelRepository::instance().model( mo)),
 		context( ctx)
 {
 	if( !context)
@@ -172,7 +161,7 @@ QEOrm::QEOrm()
 // =================================================================
 
 void QEOrm::save( 
-	const ModelShd& model, 
+	const Model& model,
 	QObject *const source, 
 	AbstractS11nContext* const context) const
 {
@@ -188,7 +177,7 @@ void QEOrm::save(
 // =================================================================
 
 void QEOrm::load( 
-	const ModelShd& model, 
+	const Model& model,
 	QObject *const target,
 	const AbstractS11nContext*const context) const
 {
@@ -206,7 +195,7 @@ void QEOrm::erase(
 {
 	SecuredS11Context sc( context);
 	DeleteHelper dh;
-	ModelShd model = ModelRepository::instance().model( source->metaObject());
+	const Model model = ModelRepository::instance().model( source->metaObject());
 	
 	dh.erase( model, source, sc.get());
 }
