@@ -38,7 +38,20 @@
 namespace qe { namespace orm {
 	class QEOrmPrivate;
 	class S11nContext;
-		
+
+	struct QEORM_EXPORT QEOrmFindValidatedInputs
+	{
+		QEOrmFindValidatedInputs(
+			const QMetaObject* mo,
+			const S11nContext* const ctx,
+			std::set<QString>& checkedTables,
+			std::mutex & checkedTablesMtx);
+
+		entity::Model model;
+		const S11nContext* context;
+		std::unique_ptr<S11nContext> contextScopeGuard;
+	};
+
 	/// @todo Add support for QSqlQuery::isForwardOnly
 	/// @todo Check table version. 
 	/// @brief It is the helper class to save and load objects from database.
@@ -46,20 +59,6 @@ namespace qe { namespace orm {
 	/// It uses the default database connection.
 	class QEORM_EXPORT QEOrm : public qe::entity::AbstractSerializer
 	{
-		private:
-			struct FindValidatedInputs 
-			{
-				FindValidatedInputs( 
-						const QMetaObject* mo, 
-						const S11nContext* const ctx,
-						std::set<QString>& checkedTables,
-						std::mutex & checkedTablesMtx);
-				
-				entity::Model model;
-				const S11nContext* context;
-				std::unique_ptr<S11nContext> contextScopeGuard;
-			};
-
 		public:
 			/// @brief It returns the singleton instance.
 			static QEOrm& instance();
@@ -92,7 +91,7 @@ namespace qe { namespace orm {
 					const S11nContext* const context = nullptr,
 					QObject* parent = nullptr) const
 				{
-					const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
+					const QEOrmFindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 					FindHelper findHelper;
 					
 					return ResultSet<T>( 
@@ -110,7 +109,7 @@ namespace qe { namespace orm {
 				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
+				const QEOrmFindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 				return ResultSet<T>( query, *fvi.context, parent);
 			}
 
@@ -120,7 +119,7 @@ namespace qe { namespace orm {
 				const S11nContext* const context = nullptr,
 				QObject* parent = nullptr) const
 			{
-				const FindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
+				const QEOrmFindValidatedInputs fvi( & T::staticMetaObject, context, m_checkedTables, m_checkedTablesMtx);
 				
 				return ResultSet<T>(
 						nativeQuery( fvi.context, query),
@@ -140,7 +139,6 @@ namespace qe { namespace orm {
 				const qe::entity::AbstractS11nContext* const source) const override;
 
 		private:
-
 			QEOrm();
 			QEOrm( const QEOrm& );
 			QEOrm& operator=( const QEOrm& );
