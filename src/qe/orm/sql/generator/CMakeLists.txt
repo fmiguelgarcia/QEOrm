@@ -6,6 +6,7 @@ set( QEOrmSqlGenerator_SRCS
 	AbstractGenerator.cpp 
 	ANSIGenerator.cpp 
 	SQLiteGenerator.cpp 
+	MySQLGenerator.cpp
 	CachedGenerator.cpp)
 
 # Link

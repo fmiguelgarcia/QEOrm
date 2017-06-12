@@ -50,3 +50,9 @@ void Book::removeFootNote( const QString& footNote)
 {
 	m_footNotes.removeAll( footNote);
 }
+
+QByteArray Book::cover() const
+{ return m_cover; }
+
+void Book::setCover( const QByteArray& data)
+{ m_cover = data; }

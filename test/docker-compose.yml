@@ -1,0 +1,14 @@
+version: "2"
+services:
+   db:
+      image: mysql:8
+      mem_limit: 512M
+      restart: on-failure
+      environment:
+         - MYSQL_ROOT_PASSWORD=super1234
+         - MYSQL_DATABASE=ormTest
+         - MYSQL_USER=ormTest
+         - MYSQL_PASSWORD=ormTest1234
+      ports:
+         - "3307:3306"
+

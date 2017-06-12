@@ -27,5 +27,6 @@ class QEOrmTest : public QObject
 		void checkSaveAutoIncrement();
 		void checkSaveReferences();
 		void checkQStringList();
+		void checkBlobFields();
 		void checkDelete();
 };

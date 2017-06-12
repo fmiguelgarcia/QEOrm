@@ -1,0 +1,5 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/book/cover/">
+    <file alias="cover1.jpg">resources/cover1.jpg</file>
+</qresource>
+</RCC>

@@ -1,8 +1,11 @@
 include(${CMAKE_SOURCE_DIR}/tools/cmake/common.cmake)
 find_package( Qt5Test)
+set( CMAKE_AUTORCC ON)
 
 set( QEOrmTest_SRCS 
-	entity/book.cpp entity/chapter.cpp
+	entity/book.cpp
+	entity/chapter.cpp
+	QEOrmTest.qrc
 	QEOrmTest.cpp)
 
 add_executable( QEOrmTest ${QEOrmTest_SRCS})

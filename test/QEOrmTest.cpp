@@ -29,6 +29,7 @@
 #include <qe/orm/S11nContext.hpp>
 #include <qe/common/Exception.hpp>
 
+#include <QCryptographicHash>
 #include <QSqlDatabase>
 #include <QCryptographicHash>
 #include <QtTest>
@@ -74,6 +75,42 @@ namespace {
 		ch2->id = 2 + bookId * 1000;
 		return ch2;
 	}
+
+	QByteArray readCoverFromResources( const QString& coverName)
+	{
+		QByteArray content;
+
+		QFile rFile( coverName);
+		if( rFile.open( QIODevice::ReadOnly))
+			content = rFile.readAll();
+
+		return content;
+	}
+
+	void setupSqliteOnMemoryDb()
+	{
+		QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
+		db.setDatabaseName(":memory:");
+		QVERIFY( db.open() );
+	}
+
+	void setupSqliteOnFileDb()
+	{
+		QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
+		db.setDatabaseName("/tmp/QEOrmTest.db");
+		QVERIFY( db.open() );
+	}
+
+	void setupMysqlDb()
+	{
+		QSqlDatabase db = QSqlDatabase::addDatabase( "QMYSQL");
+		db.setDatabaseName( "ormTest");
+		db.setHostName( "127.0.0.1");
+		db.setPort( 3307);
+		db.setUserName( "ormTest");
+		db.setPassword( "ormTest1234");
+		QVERIFY( db.open() );
+	}
 }
 
 QEOrmTest::QEOrmTest( QObject* parent)
@@ -81,15 +118,19 @@ QEOrmTest::QEOrmTest( QObject* parent)
 {
 	// Called before the first testfunction is executed
 	// Settup database
-	QSqlDatabase db = QSqlDatabase::addDatabase( "QSQLITE");
 
-#if 0
-	db.setDatabaseName("/tmp/QEOrmTest.db");
-#else
-	db.setDatabaseName(":memory:");
-#endif
-
-	QVERIFY( db.open() );
+	const int dbType = 2;
+	switch( dbType)
+	{
+		case 1:
+			setupSqliteOnFileDb();
+			break;
+		case 2:
+			setupMysqlDb();
+			break;
+		default:
+			setupSqliteOnMemoryDb();
+	}
 }
 
 void QEOrmTest::checkSaveAutoIncrement()
@@ -157,6 +198,27 @@ void QEOrmTest::checkQStringList()
 	QEOrm::instance().load( &loadedBook, &ctxt);
 	QVERIFY( loadedBook.id != 0);
 	QVERIFY( loadedBook == *book);
+}
+
+void QEOrmTest::checkBlobFields()
+{
+	const QByteArray cover = readCoverFromResources(":/book/cover/cover1.jpg");
+	const QByteArray coverMd5 = QCryptographicHash::hash( cover, QCryptographicHash::Algorithm::Md5);
+
+	unique_ptr<Book> book{ createBook1()};
+	book->setCover( cover);
+
+	QEOrm::instance().save( book.get());
+	QVERIFY( book->id != 0);
+
+	Book loadedBook;
+	S11nContext ctxt( QVariantList{ book->id });
+	QEOrm::instance().load( &loadedBook, &ctxt);
+	QVERIFY( loadedBook.id != 0);
+
+	const QByteArray loadedCover = loadedBook.cover();
+	const QByteArray loadedCoverMd5 = QCryptographicHash::hash( loadedCover, QCryptographicHash::Algorithm::Md5);
+	QVERIFY( coverMd5 == loadedCoverMd5);
 }
 
 

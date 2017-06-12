@@ -27,6 +27,7 @@
 #include "GeneratorRepository.hpp"
 #include "generator/ANSIGenerator.hpp"
 #include "generator/SQLiteGenerator.hpp"
+#include "generator/MySQLGenerator.hpp"
 #include "generator/CachedGenerator.hpp"
 
 #include <qe/common/Exception.hpp>
@@ -58,7 +59,8 @@ AbstractGenerator* GeneratorRepository::createAndStoreGenerator(const int dbmsTy
 	using GeneratorBuilder = std::function<AbstractGenerator*()>;
 	const static map<int, GeneratorBuilder> sqlGenMaker = {
 		{ QSqlDriver::UnknownDbms, [](){ return new ANSIGenerator(); } }, 
-		{ QSqlDriver::SQLite, [](){ return new SQLiteGenerator();} } 
+		{ QSqlDriver::SQLite, [](){ return new SQLiteGenerator();} },
+		{ QSqlDriver::MySqlServer, [](){ return new MySQLGenerator();}}
 	};
 	
 	auto itr = sqlGenMaker.find( dbmsType);

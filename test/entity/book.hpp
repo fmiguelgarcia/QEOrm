@@ -16,6 +16,7 @@ class Book
 	Q_PROPERTY( int entityDisable MEMBER entityDisable )
 	Q_PROPERTY( QVariantList chapters READ chaptersAdapter WRITE chaptersAdapter)
 	Q_PROPERTY( QStringList footNotes MEMBER m_footNotes)
+	Q_PROPERTY( QByteArray cover MEMBER m_cover)
 
 #if QT_VERSION >= QT_VERSION_CHECK( 5, 5, 0)
 	Q_PROPERTY( Type type READ type WRITE setType)
@@ -31,7 +32,8 @@ class Book
 	Q_CLASSINFO( "binSignature", "@qe.entity.isNullable=true")
 	Q_CLASSINFO( "entityDisable", "@qe.entity.isEnabled=false")
 	Q_CLASSINFO( "chapters", "@qe.entity.mapping.entity=Chapter @qe.entity.mapping.type=OneToMany")
-	
+	Q_CLASSINFO( "cover", "@qe.entity.isNullable=true @qe.entity.maxLength=524288")
+
 	public:
 		enum Type {
 			Unknown,
@@ -64,8 +66,12 @@ class Book
 		void addFootNote( const QString& footNote);
 		void removeFootNote( const QString& footNote);
 
+		QByteArray cover() const ;
+		void setCover( const QByteArray& data);
+
 	private:
 		Type m_type = Type::Unknown;
 
 		QStringList m_footNotes;
+		QByteArray m_cover;
 };
