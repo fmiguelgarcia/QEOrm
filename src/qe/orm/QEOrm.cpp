@@ -123,7 +123,7 @@ namespace {
  *
  */
 
-QEOrm::FindValidatedInputs::FindValidatedInputs( 
+QEOrmFindValidatedInputs::QEOrmFindValidatedInputs(
 	const QMetaObject* mo, 
 	const S11nContext* const ctx,
 	std::set<QString>& checkedTables,
