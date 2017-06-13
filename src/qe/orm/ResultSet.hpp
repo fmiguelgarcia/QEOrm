@@ -109,7 +109,7 @@ namespace qe { namespace orm {
 
 		private:
 			inline void setPosition( const int pos) noexcept
-			{ m_position = std::max( pos, -1); }
+			{ m_position = (pos >= -1)? pos:-1; }
 
 			ResultSet<T>& m_rs;
 			int m_position;
