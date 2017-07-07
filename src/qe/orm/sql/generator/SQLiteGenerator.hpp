@@ -25,9 +25,11 @@
  */
 #pragma once
 #include <qe/orm/sql/generator/ANSIGenerator.hpp>
+#include <QLoggingCategory>
 
 namespace qe { namespace orm {  namespace sql {
 	class SQLiteGeneratorPrivate;
+	Q_DECLARE_LOGGING_CATEGORY( lcSQLiteGenerator);
 
 	/// @brief It is an specialization of SQL generator for SQLite.
 	class SQLiteGenerator : public ANSIGenerator

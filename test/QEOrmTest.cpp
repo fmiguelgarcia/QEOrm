@@ -119,7 +119,7 @@ QEOrmTest::QEOrmTest( QObject* parent)
 	// Called before the first testfunction is executed
 	// Settup database
 
-	const int dbType = 2;
+	const int dbType = 1;
 	switch( dbType)
 	{
 		case 1:

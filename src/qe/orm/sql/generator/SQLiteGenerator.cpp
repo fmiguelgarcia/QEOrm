@@ -31,6 +31,9 @@
 using namespace qe::entity;
 using namespace qe::orm::sql;
 
+Q_LOGGING_CATEGORY( qe::orm::sql::lcSQLiteGenerator,
+	"com.dmious.qe.orm.sql.SQLiteGenerator");
+
 SQLiteGenerator::~SQLiteGenerator()
 {}
 
@@ -124,7 +127,13 @@ QString SQLiteGenerator::databaseType(
 		case QMetaType::Int:
 		case QMetaType::Long:
 		case QMetaType::LongLong:
+			dbType = QStringLiteral( "INTEGER");
+			break;
 		default:
+			qCCritical(
+				lcSQLiteGenerator,
+				"Custom unknown type '%d' assign to INTEGER",
+				eDef.propertyType());
 			dbType = QStringLiteral( "INTEGER");
 	}
 	return dbType;

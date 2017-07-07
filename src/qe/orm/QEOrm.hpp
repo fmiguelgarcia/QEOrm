@@ -73,6 +73,23 @@ namespace qe { namespace orm {
 				const qe::entity::AbstractS11nContext* const context = nullptr) const override
 			{ qe::entity::AbstractSerializer::load( target, context);}
 
+			inline void load(
+					QObject* const target,
+					const QVariantList& primaryKeyValues,
+					const QString& dbConn = QString()) const
+			{
+				S11nContext ctxt( primaryKeyValues, dbConn);
+				load( target, &ctxt);
+			}
+
+			inline void load(
+					QObject* const target,
+					const std::initializer_list<QVariant>& primaryKeyValues,
+					const QString& dbConn = QString()) const
+			{
+				load( target, QVariantList(primaryKeyValues), dbConn);
+			}
+
 
 			/// @brief It deletes @p source object from database specified 
 			///	in @p target.
