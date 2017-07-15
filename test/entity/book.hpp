@@ -14,7 +14,8 @@ class Book
 	Q_PROPERTY( int pages MEMBER pages)
 	Q_PROPERTY( QByteArray binSignature MEMBER binSignature)
 	Q_PROPERTY( int entityDisable MEMBER entityDisable )
-	Q_PROPERTY( QVariantList chapters READ chaptersAdapter WRITE chaptersAdapter)
+	// Q_PROPERTY( QVariantList chapters READ chaptersAdapter WRITE chaptersAdapter)
+	Q_PROPERTY( Book::ChapterList chapters MEMBER chapters)
 	Q_PROPERTY( QStringList footNotes MEMBER m_footNotes)
 	Q_PROPERTY( QByteArray cover MEMBER m_cover)
 
@@ -54,8 +55,9 @@ class Book
 		QByteArray binSignature;
 		int entityDisable;
 
-		std::vector<Chapter> chapters;
-		qe::entity::OneToManyAdapter< decltype(chapters)> chaptersAdapter{ chapters};
+		using ChapterList = std::vector<Chapter>;
+		ChapterList chapters;
+		// qe::entity::OneToManyAdapter< decltype(chapters)> chaptersAdapter{ chapters};
 		
 		bool operator == (const Book& other) const;
 		
@@ -75,3 +77,5 @@ class Book
 		QStringList m_footNotes;
 		QByteArray m_cover;
 };
+
+Q_DECLARE_METATYPE( Book::ChapterList)

@@ -1,4 +1,11 @@
 #include "book.hpp"
+#include <qe/entity/SequenceContainerRegister.hpp>
+
+
+QE_REGISTER_SEQUENCE_CONTAINER(
+	Book::ChapterList,
+	Chapter)
+
 
 bool Book::operator == (const Book& other) const
 {

@@ -28,6 +28,8 @@
 #include "sql/GeneratorRepository.hpp"
 #include "sql/generator/AbstractGenerator.hpp"
 #include <qe/common/Exception.hpp>
+#include <qe/entity/SequenceContainerRegister.hpp>
+#include <qe/entity/AssociativeContainerRegister.hpp>
 #include <qe/entity/ModelRepository.hpp>
 #include <qe/entity/Model.hpp>
 #include <qe/entity/EntityDef.hpp>
@@ -187,45 +189,58 @@ void SaveHelper::save(
 	saveOneToMany( model, source, context);
 }
 
-
-void SaveHelper::saveOneToManyUserType(
-	const QByteArray& propertyName,
-	const QVariant& propertyValue,
-	S11nContext* const context) const
+void SaveHelper::saveSequenceContainer(
+	const EntityDef &eDef,
+	const QVariantList &values,
+	const function< QObject*( const QVariant&)> &transformer,
+	S11nContext* const context ) const
 {
-	if( ! propertyValue.canConvert<QVariantList>())
-		Exception::makeAndThrow(
-			QStringLiteral("QE Orm can only use QVariantList for mapping property %1")
-			.arg( propertyName.constData()));
+	const QByteArray& propertyName = eDef.propertyName();
+	const QByteArray idxName = propertyName + "_idx";
 
-	QVariantList values = propertyValue.toList();
-	for( QVariant& value : values)
+	const auto mappedModel = eDef.mappedModel();
+	if( !mappedModel)
+		qe::common::Exception::makeAndThrow( QStringLiteral( "Saving One to many relation without mapped model"));
+
+	QObject* adapter;
+	for( int idx = 0; idx < values.size(); ++idx)
 	{
-		QObject *refItem = value.value<QObject*>();
-		if( refItem )
-		{
-			Model refModel = ModelRepository::instance().model( refItem->metaObject());
-			save( refModel, refItem, context);
-		}
+		adapter = transformer( values[idx]);
+		if( !adapter )
+			qe::common::Exception::makeAndThrow( QStringLiteral( "Null QObject pointer cannot be saved"));
+
+		adapter->setProperty( idxName, idx);
+		save( *mappedModel, adapter, context);
 	}
 }
 
-void SaveHelper::saveOneToManyStrinList(
-	const QByteArray& propertyName,
-	const QVariant& propertyValue,
-	const Model& refModel,
+void SaveHelper::saveObjectSequenceContainer(
+	const EntityDef& eDef,
+	const QVariantList& values,
+	S11nContext* const context) const
+{
+	const auto transformer = []( const QVariant& value) {
+		return value.value<QObject*>();
+	};
+
+	saveSequenceContainer( eDef, values, transformer, context);
+}
+
+void SaveHelper::saveNativeSequenceContainer(
+	const EntityDef& eDef,
+	const QVariantList& values,
 	S11nContext* const context ) const
 {
-	uint index = 0;
-	const QStringList values = propertyValue.toStringList();
+	const QByteArray& propertyName = eDef.propertyName();
+	QObject adapter;
 
-	for( const QString& value: values)
-	{
-		QObject adapter;
-		adapter.setProperty( "idx", index++);
-		adapter.setProperty( propertyName, value);
-		save( refModel, &adapter, context);
-	}
+	const auto transformer =
+		[&adapter, &propertyName]( const QVariant& value) {
+			adapter.setProperty( propertyName, value);
+			return &adapter;
+	};
+
+	saveSequenceContainer( eDef, values, transformer, context);
 }
 
 void SaveHelper::saveOneToMany( 
@@ -235,30 +250,36 @@ void SaveHelper::saveOneToMany(
 {
 	ScopedS11Context _( source, context);
 	
-	for( const auto& colDef : model.entityDefs())
+	for( const EntityDef& colDef : model.entityDefs())
 	{
 		if( colDef.mappedType() == EntityDef::MappedType::OneToMany)
 		{
-			const QByteArray& propertyName = colDef.propertyName();
-			const QVariant propertyValue = source->property( propertyName);
-			const int type = colDef.propertyType();
+			const QVariant propertyValue = source->property( colDef.propertyName());
+			const int propType = colDef.propertyType();
 
-			switch( type)
+			if( SequenceContainerRegister::instance().contains(propType))
 			{
-				case QMetaType::Type::QVariantList:
-					saveOneToManyUserType( propertyName, propertyValue, context);
-					break;
-				case QMetaType::Type::QStringList:
-					{
-						optional<Model> colDefModel = colDef.mappedModel();
-						if( colDefModel)
-							saveOneToManyStrinList( propertyName, propertyValue, *colDefModel, context);
-						break;
-					}
-				default:
-					Exception::makeAndThrow(
+				const SequenceContainerInfo sci =
+					SequenceContainerRegister::instance().value( propType);
+				const auto values = propertyValue.toList();
+
+				if( sci.elementTypeId < QMetaType::User)
+					saveNativeSequenceContainer( colDef, values, context);
+				else
+					saveObjectSequenceContainer( colDef, values, context);
+			}
+			else if( AssociativeContainerRegister::instance().contains( propType))
+			{
+				const auto aci = AssociativeContainerRegister::instance()
+						.value( propType);
+				/// @todo
+			}
+			else
+			{
+				Exception::makeAndThrow(
 						QString( "Unsupported 'One to Many' relation for type %1 on '%2'")
-							.arg( type).arg( colDef.entityName()));
+					.arg( propType)
+					.arg( colDef.entityName()));
 			}
 		}
 	}

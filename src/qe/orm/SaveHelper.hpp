@@ -25,10 +25,14 @@
  */
 #pragma once
 #include <qe/entity/Types.hpp>
+#include <functional>
 
 class QByteArray;
 class QVariant;
-namespace qe { namespace orm { 
+class QObject;
+namespace qe { namespace entity { class EntityDef; }}
+
+namespace qe { namespace orm {
 	class SaveHelperPrivate;
 	class S11nContext;
 
@@ -52,17 +56,23 @@ namespace qe { namespace orm {
 				QObject *source, 
 				S11nContext* const context) const;
 
-			void saveOneToManyUserType(
-				const QByteArray& propertyName,
-				const QVariant& propertyValue,
-				S11nContext* const context) const;
-
-			void saveOneToManyStrinList(
-				const QByteArray& propertyName,
-				const QVariant& propertyValue,
-				const entity::Model& refModel,
+			void saveSequenceContainer(
+				const qe::entity::EntityDef &eDef,
+				const QVariantList &values,
+				const std::function< QObject*( const QVariant&)> &transformer,
 				S11nContext* const context ) const;
 
+			void saveObjectSequenceContainer(
+				const qe::entity::EntityDef& eDef,
+				const QVariantList& values,
+				S11nContext* const context) const;
+
+			void saveNativeSequenceContainer(
+				const qe::entity::EntityDef& eDef,
+				const QVariantList& values,
+				S11nContext* const context ) const;
+
+		protected:
 			SaveHelperPrivate *d_ptr;
 
 		private:

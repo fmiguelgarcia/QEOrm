@@ -27,4 +27,6 @@ class Chapter
 		QString title;
 		QString text;
 };
+
 Q_DECLARE_METATYPE( Chapter*)
+Q_DECLARE_METATYPE( Chapter)

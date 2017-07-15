@@ -9,6 +9,13 @@ set( QEOrmTest_SRCS
 	QEOrmTest.cpp)
 
 add_executable( QEOrmTest ${QEOrmTest_SRCS})
-target_link_libraries( QEOrmTest QEOrm Qt5::Core Qt5::Sql Qt5::Test ${CONAN_LIBS})
+target_link_libraries( QEOrmTest
+	QEOrm
+	Qt5::Core Qt5::Sql Qt5::Test
+	${CONAN_LIBS})
+set_target_properties( QEOrmTest
+	PROPERTIES
+		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_test( NAME QEOrmTest COMMAND  $<TARGET_FILE:QEOrmTest>)
+# add_test( NAME QEOrmTest COMMAND  $<TARGET_FILE:QEOrmTest>)
+add_test( NAME QEOrmTest COMMAND QEOrmTest )
