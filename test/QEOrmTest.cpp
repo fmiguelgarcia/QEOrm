@@ -25,18 +25,23 @@
  */
 #include "QEOrmTest.hpp"
 #include "entity/book.hpp"
+#include <qe/common/Exception.hpp>
+#include <qe/entity/ModelRepository.hpp>
 #include <qe/orm/QEOrm.hpp>
 #include <qe/orm/S11nContext.hpp>
-#include <qe/common/Exception.hpp>
 
 #include <QCryptographicHash>
 #include <QSqlDatabase>
 #include <QCryptographicHash>
 #include <QtTest>
 
+#include <boost/archive/polymorphic_xml_oarchive.hpp>
+#include <fstream>
+
 using namespace qe::orm;
 using namespace qe::entity;
 using namespace qe::common;
+using namespace boost;
 using namespace std;
 
 QTEST_MAIN(QEOrmTest);
@@ -131,6 +136,13 @@ QEOrmTest::QEOrmTest( QObject* parent)
 		default:
 			setupSqliteOnMemoryDb();
 	}
+
+	unique_ptr<Book> book{ createBook1()};
+	auto model = ModelRepository::instance().model( book->metaObject());
+
+	ofstream os( "out.xml");
+	archive::polymorphic_xml_oarchive oa( os);
+	oa & serialization::make_nvp( "bookModel", model);
 }
 
 void QEOrmTest::checkSaveAutoIncrement()
